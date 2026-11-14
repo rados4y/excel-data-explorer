@@ -69,6 +69,7 @@ impl Fixture {
             }
         }
         book.save(&path).unwrap();
+        let path = std::fs::canonicalize(path).unwrap();
         let engine = Engine::open(dir.path().join("cache.sqlite")).unwrap();
         let workspace = engine
             .add_excel_workbook(&path, None, None, &[])
@@ -364,7 +365,7 @@ fn invalid_nested_updates_preserve_config_and_relationships_and_reject_wrong_par
     f.engine
         .sync_workbook(
             &other,
-            f.dir.path().join("project.xlsx").to_str().unwrap(),
+            &f.engine.config(&other).unwrap().sources[0].path,
             true,
             "test",
         )
@@ -403,12 +404,7 @@ fn explicit_source_pairs_exclude_other_namespaces_with_identical_entities_and_ke
     }
     f.engine.persist_space(&mut config).unwrap();
     f.engine
-        .sync_workbook(
-            &f.workspace,
-            f.dir.path().join("project.xlsx").to_str().unwrap(),
-            true,
-            "test",
-        )
+        .sync_workbook(&f.workspace, &config.sources[0].path, true, "test")
         .unwrap();
     let a = f.offers().records[0].id.clone();
     let rows = f.nested(&a, 0, Default::default());

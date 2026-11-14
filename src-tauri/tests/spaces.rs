@@ -52,6 +52,7 @@ impl Fixture {
         }
         book.add_worksheet().set_name("Empty").unwrap();
         book.save(&path).unwrap();
+        let path = std::fs::canonicalize(path).unwrap();
         let engine = Engine::open(dir.path().join("cache.sqlite")).unwrap();
         Self { dir, engine, path }
     }
