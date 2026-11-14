@@ -239,6 +239,21 @@ fn unique<'a>(ids: impl Iterator<Item = &'a str>, what: &str) -> Result<()> {
     Ok(())
 }
 pub fn lexical_path(path: &Path) -> PathBuf {
+    // Canonical Windows paths use the verbatim prefix, where '/' is NOT a
+    // separator. YAML commonly appends /file.xlsx to a canonical root.
+    #[cfg(windows)]
+    let normalized = {
+        use std::os::windows::ffi::{OsStrExt, OsStringExt};
+        PathBuf::from(std::ffi::OsString::from_wide(
+            &path
+                .as_os_str()
+                .encode_wide()
+                .map(|c| if c == b'/' as u16 { b'\\' as u16 } else { c })
+                .collect::<Vec<_>>(),
+        ))
+    };
+    #[cfg(windows)]
+    let path = normalized.as_path();
     let mut out = PathBuf::new();
     for c in path.components() {
         match c {
@@ -252,6 +267,14 @@ pub fn lexical_path(path: &Path) -> PathBuf {
     out
 }
 pub fn is_network(path: &str) -> bool {
+    if let Some(rest) = path
+        .strip_prefix("\\\\?\\")
+        .or_else(|| path.strip_prefix("//?/"))
+    {
+        return rest
+            .get(..4)
+            .is_some_and(|p| p.eq_ignore_ascii_case("UNC\\") || p.eq_ignore_ascii_case("UNC/"));
+    }
     path.starts_with("//") || path.starts_with("\\\\")
 }
 impl Config {
@@ -267,6 +290,8 @@ impl Config {
             let p = Path::new(value);
             if !p.is_absolute() && !is_network(value) {
                 *value = lexical_path(&base.join(p)).to_string_lossy().into_owned();
+            } else {
+                *value = lexical_path(p).to_string_lossy().into_owned();
             }
         }
         for s in &mut c.sources {
@@ -281,6 +306,8 @@ impl Config {
             let p = Path::new(&s.path);
             if !p.is_absolute() && !is_network(&s.path) {
                 s.path = lexical_path(&base.join(p)).to_string_lossy().into_owned();
+            } else {
+                s.path = lexical_path(p).to_string_lossy().into_owned();
             }
             if s.namespace.is_empty() {
                 s.namespace = s.id.clone();

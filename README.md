@@ -4,7 +4,9 @@ A local-first Windows desktop application for organizing Excel workbooks into sp
 ![Explorer with invoice document drill-down](docs/explorer-screenshot.png)
 
 ## Install and run
-Prerequisites: Node 22/24 LTS, current Rust stable (1.100 or newer), Python 3 for regenerating fixtures. Windows 11 x64 development also needs Visual Studio 2022 C++ Build Tools/Windows SDK and WebView2 Evergreen. See [Windows release instructions](docs/WINDOWS_RELEASE.md).
+**Windows:** download the latest successful main build's **windows-installer-unsigned** artifact from [GitHub Actions](https://github.com/rados4y/excel-data-explorer/actions/workflows/ci.yml?query=branch%3Amain), extract the ZIP and run its installer. For updates, Exit the app from the tray and install the latest build over it; your local spaces/cache are kept. See the [easy Windows install/update guide](docs/WINDOWS_QUICK_START.md). Installer builds run automatically on main updates; there is no in-app auto-updater yet.
+
+For source development, prerequisites: Node 22/24 LTS, current Rust stable (1.100 or newer), Python 3 for regenerating fixtures. Windows 11 x64 development also needs Visual Studio 2022 C++ Build Tools/Windows SDK and WebView2 Evergreen. See [Windows release instructions](docs/WINDOWS_RELEASE.md).
 
 ```sh
 npm ci
@@ -135,7 +137,7 @@ node scripts/run.mjs cargo run --manifest-path src-tauri/Cargo.toml --no-default
 
 The `rpc` diagnostic mode accepts newline-delimited typed JSON on stdin, e.g. `{"command":"query_records","workspace_id":"demo","entity_type":"offer","options":{"search":"OFF-001","limit":100}}`. It uses the same engine, not an HTTP server. A plain `npm run dev` browser tab has no native cache connection; use the desktop command for the full app. The Playwright test bridge exists only in tests.
 
-[Verification report](docs/TEST_REPORT.md): 48 Rust, 2 Python demo-helper tests, 6 frontend and 16 real-core browser tests pass on Linux; Windows-target native API/type checking passed. Windows GUI/installer/sign-in acceptance still requires execution on Windows. [Measured performance](docs/PERFORMANCE.md): 70,001-record release benchmark with real latency, import throughput and memory results; full target-scale and Windows metrics remain unmeasured.
+[Verification report](docs/TEST_REPORT.md): 49 Rust, 2 Python demo-helper tests, 6 frontend and 16 real-core browser tests pass on Linux; Windows-target native API/type checking passed. Windows GUI/installer/sign-in acceptance still requires execution on Windows. [Measured performance](docs/PERFORMANCE.md): 70,001-record release benchmark with real latency, import throughput and memory results; full target-scale and Windows metrics remain unmeasured.
 
 ```sh
 python benchmarks/run.py --offers 10000 --output /local/ssd/ede-benchmark

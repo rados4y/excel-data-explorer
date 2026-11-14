@@ -1,4 +1,6 @@
 # Windows build and verification
+For normal installation and refreshing to the latest build, use the [Windows quick start](WINDOWS_QUICK_START.md). The steps below are for building and verifying the app from source.
+
 Use Windows 11 x64, current Rust stable with `x86_64-pc-windows-msvc`, Node 22/24 LTS, Python 3, Visual Studio 2022 Build Tools (Desktop development with C++ and Windows SDK), and the WebView2 Evergreen Runtime. Excel is not required.
 
 ```powershell
@@ -40,7 +42,7 @@ First verify the configuration-free workflow in the spaces/pages checks below. F
 10. Run target-scale benchmarks and Windows idle/restore measurements; record p50/p95/p99, RAM, UI FPS and cold vs warm launch.
 
 ## CI and release
-`.github/workflows/ci.yml` runs Linux core/UI tests and Windows native build/check, and uploads an unsigned NSIS artifact on manual workflow dispatch. It is supplied but has not been executed from this workspace.
+`.github/workflows/ci.yml` runs Linux core/UI tests and Windows native build/check, and uploads an unsigned NSIS installer artifact for every push to main and manual workflow dispatch. Download the latest successful run’s `windows-installer-unsigned` ZIP from its Artifacts section. Artifact downloads require GitHub sign-in.
 
 Unsigned local builds may show SmartScreen warnings. For production, configure Tauri Windows signing (`certificateThumbprint`, `digestAlgorithm`, `timestampUrl` or a protected signing command) using the organization's certificate and secret store; sign the executable and installer, verify signatures, and test install/update/uninstall under a standard account. No certificate or credentials are committed. Keep `%LOCALAPPDATA%/ExcelDataExplorer/` for user cache/settings/logs; don't silently delete it during upgrades or reinstall.
 

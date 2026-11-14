@@ -1,7 +1,7 @@
 # Verification report
 Environment: Linux x86_64, 2026-11-14, Node 24.22.1, Rust stable 1.100.0, Chromium, current locked dependencies.
 
-- Rust: **48 tests passed** (5 version/lifecycle, 10 cache/relationships, 5 curated sample/portability tests, 2 documents, 6 parsing, 9 spaces/pages, 5 nested views, 6 synchronization). A Windows-only exclusive-file-lock test is supplied and is not counted as executed on Linux.
+- Rust: **49 tests passed** (5 version/lifecycle, 10 cache/relationships, 5 curated sample/portability tests, 2 documents, 6 parsing, 9 spaces/pages, 5 nested views, 6 synchronization, 1 network-path classification). Windows-only exclusive-file-lock and canonical YAML path import tests are supplied and are not counted as executed on Linux.
 - Demo tooling: **2 Python standard-library tests passed**, covering deterministic XLSX/PDF generation and safe offline/online/scenario restoration.
 - Frontend: **6 Vitest tests passed**; TypeScript and Vite production build passed.
 - End-to-end: **16 Playwright tests passed** against the real Rust diagnostic process and SQLite. Covers virtualization, search, invoice drill-down, PDF path validation, filters, pagination, alternate workspace mappings, restored view state, source status, pause and cached browsing while a workbook is missing. Six gallery cases additionally validate every curated sample and capture its preview image on explicit request. The test-only event shell is stubbed; it does not verify native document launching.
@@ -9,7 +9,7 @@ Environment: Linux x86_64, 2026-11-14, Node 24.22.1, Rust stable 1.100.0, Chromi
 - Native Windows-target type/API check (`x86_64-pc-windows-gnu`, desktop feature) passed using a user-local Zig C/resource compiler adapter on Linux. This includes the multi-workbook native file picker and dispatch commands for spaces/pages and nested views. It is a compile/type check, not a linked/installed Windows executable test.
 - Release benchmark: 70,001 real imported records, measured timings/RSS in `PERFORMANCE.md` and raw JSON. Full 700,001-record inputs generated; full-scale import not measured here.
 
-Required Windows follow-up: build/link/install the MSVC NSIS release, run `tests/windows/lifecycle.ps1`, the exclusive-lock test and the interactive checklist in `WINDOWS_RELEASE.md`; verify hidden sign-in, close-to-tray, existing-instance reuse, default PDF handler, sleep/reconnect and a real UNC share. CI workflow is supplied but was not executed remotely.
+Required Windows follow-up: build/link/install the MSVC NSIS release, run `tests/windows/lifecycle.ps1`, the exclusive-lock test and the interactive checklist in `WINDOWS_RELEASE.md`; verify hidden sign-in, close-to-tray, existing-instance reuse, default PDF handler, sleep/reconnect and a real UNC share. The latest installer’s GitHub Actions run is the authoritative record for Windows tests and packaging; see the [Windows quick start](WINDOWS_QUICK_START.md).
 
 No Windows GUI, installer execution, code signing, cold/warm WebView launch, FPS or Windows idle-CPU result is claimed as verified. Source fixtures remain read-only during application imports. Tests mutate only generated/copied fixture workbooks, independently of application read-only ingestion.
 
@@ -25,3 +25,6 @@ Four new browser cases exercise empty startup, named empty spaces, importing mul
 
 ## Nested views
 Five integration tests verify source-paired Offer → Invoice/Protocol joins, exact matching, 25-row pagination, empty states, preserved identities/input bytes, hidden child pages with saved filters and sorting, offline restart/configuration, deeper nesting, removal, invalid field/type/ID rollback, duplicate entities/keys in other namespaces and cross-workspace rejection. The unchanged legacy namespace test also passes. Two new UI flows exercise relationship editing, parent selection changes, simultaneous child lists, drill-down/back, offline persistence/removal, hidden child columns/pages, saved filters and a further child level. A sixth gallery case validates the portable three-sheet sample and generates its screenshot.
+
+## Windows installer delivery
+Main pushes and manual workflow runs now build an unsigned per-user NSIS installer after Windows core tests and native checks, then upload it as `windows-installer-unsigned`. The path regression tests distinguish local verbatim drive paths from UNC shares and, on Windows, import relative YAML roots expanded under canonical paths. Separator normalization fixes the Windows CI failure in earlier commits, where canonical roots with appended `/file.xlsx` could not be read. Cross-platform tests, frontend checks and Windows-target compilation pass locally; native packaging results are reported by each Actions run.
