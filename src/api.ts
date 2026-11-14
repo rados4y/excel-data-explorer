@@ -16,6 +16,24 @@ import type {
   WorkbookPreview,
 } from "./types";
 export interface Commands {
+  save_nested_views: [
+    {
+      workspace_id: string;
+      page_id: string;
+      views: import("./types").NestedViewInput[];
+    },
+    null,
+  ];
+  get_nested_records: [
+    {
+      workspace_id: string;
+      parent_page_id: string;
+      view_id: string;
+      record_id: string;
+      options: Query;
+    },
+    Page,
+  ];
   list_workspaces: [Record<string, never>, Workspace[]];
   select_workspace: [{ workspace_id: string }, Workspace];
   add_workspace_config: [{ config_file_path: string }, Workspace];

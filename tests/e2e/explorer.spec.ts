@@ -133,7 +133,8 @@ test("filters, pagination, workspace mapping and persisted view", async ({
   page,
 }) => {
   await connect(page);
-  await page.getByLabel("Clear search").click();
+  // Start independently of the preceding test's debounced search-state save.
+  await page.getByLabel("Search records").fill("");
   await expect(page.locator(".table-caption")).toContainText("120 results");
   await page.getByLabel("Filter Status").fill("Active");
   await expect(page.locator(".table-caption")).toContainText("40 results");

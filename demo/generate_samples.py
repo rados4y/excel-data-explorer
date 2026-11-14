@@ -15,7 +15,7 @@ OFFERS = ['OfferID', 'Customer', 'Description', 'Amount', 'Status', 'CreatedAt']
 INVOICES = ['InvoiceID', 'OfferID', 'InvoiceDate', 'Amount', 'PDF']
 PROTOCOLS = ['ProtocolID', 'OfferID', 'Type', 'PDF']
 SAMPLES = ['01-offers-and-finance', '02-alternate-layout', '03-namespaces',
-           '04-documents-and-orphans', '05-sync-recovery']
+           '04-documents-and-orphans', '05-sync-recovery', '06-nested-views']
 
 
 def manifest(folder, workspace, counts, **extra):
@@ -63,6 +63,13 @@ def generate(root):
         document_status_counts={'available': 3}, orphan_count=0,
         relationships=[{'namespace': 'primary', 'parent': 'OFF-001', 'relation': 'offer_invoices', 'children': ['INV-1001', 'INV-1045']},
                        {'namespace': 'primary', 'parent': 'OFF-001', 'relation': 'offer_protocols', 'children': ['PR-022']}])
+
+    nested = root / '06-nested-views'
+    workbook(nested / 'data/project.xlsx', [('Offers', offers), ('Invoices', invoices), ('Protocols', protocols)])
+    manifest(nested, 'sample-nested', {'offer': 6, 'invoice': 8, 'protocol': 3},
+        document_status_counts={}, orphan_count=0,
+        relationships=[{'namespace': 'offers', 'parent': 'OFF-001', 'relation': 'nested_offer_invoices', 'children': ['INV-1001', 'INV-1045']},
+                       {'namespace': 'offers', 'parent': 'OFF-001', 'relation': 'nested_offer_protocols', 'children': ['PR-022']}])
 
     folder = root / SAMPLES[1]
     workbook(folder / 'data/orders.xlsx', [('Sales Export', [

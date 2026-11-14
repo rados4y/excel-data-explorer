@@ -134,6 +134,16 @@ pub struct PageDefinition {
     pub fixed_filters: BTreeMap<String, serde_json::Value>,
     #[serde(default)]
     pub hidden: bool,
+    #[serde(default)]
+    pub related_views: Vec<RelatedView>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RelatedView {
+    pub id: String,
+    pub title: String,
+    pub relationship: String,
+    pub page_id: String,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -143,6 +153,10 @@ pub struct Relationship {
     pub child_entity: String,
     pub parent_field: String,
     pub child_field: String,
+    #[serde(default)]
+    pub parent_source_id: Option<String>,
+    #[serde(default)]
+    pub child_source_id: Option<String>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -369,6 +383,23 @@ impl Config {
             self.validate_page(page)?;
         }
         for r in &self.relationships {
+            ensure!(
+                r.parent_source_id.is_some() == r.child_source_id.is_some(),
+                "Relationship must scope both worksheets or neither"
+            );
+            for (source_id, entity, field) in [
+                (&r.parent_source_id, &r.parent_entity, &r.parent_field),
+                (&r.child_source_id, &r.child_entity, &r.child_field),
+            ] {
+                if let Some(id) = source_id {
+                    ensure!(
+                        self.sources.iter().any(|s| &s.id == id
+                            && &s.entity == entity
+                            && s.fields.contains_key(field)),
+                        "Relationship worksheet/field scope mismatch"
+                    );
+                }
+            }
             self.field(&r.parent_entity, &r.parent_field)?;
             self.field(&r.child_entity, &r.child_field)?;
             ensure!(
@@ -453,6 +484,7 @@ impl Config {
             filters: v.filters.clone(),
             fixed_filters: BTreeMap::new(),
             hidden: false,
+            related_views: Vec::new(),
         }]
     }
     pub fn validate_page(&self, page: &PageDefinition) -> Result<()> {
@@ -465,6 +497,38 @@ impl Config {
             "Keep at least one visible column on a page"
         );
         unique(page.columns.iter().map(String::as_str), "page column")?;
+        unique(
+            page.related_views.iter().map(|v| v.id.as_str()),
+            "related view",
+        )?;
+        for nested in &page.related_views {
+            ensure!(
+                valid_id(&nested.id)
+                    && !nested.title.trim().is_empty()
+                    && nested.title.len() <= 200,
+                "Invalid related view title or ID"
+            );
+            let relation = self
+                .relationships
+                .iter()
+                .find(|r| r.id == nested.relationship)
+                .context("Related view references an unknown relationship")?;
+            let child = self
+                .pages
+                .iter()
+                .find(|p| p.id == nested.page_id)
+                .context("Related view references an unknown child page")?;
+            ensure!(
+                relation.parent_entity == page.entity && relation.child_entity == child.entity,
+                "Related view entity scope mismatch"
+            );
+            ensure!(
+                relation.parent_source_id.is_some()
+                    && relation.parent_source_id == page.source_id
+                    && relation.child_source_id == child.source_id,
+                "Related view worksheet scope mismatch"
+            );
+        }
         if let Some(source) = &page.source_id {
             let s = self
                 .sources
@@ -532,11 +596,13 @@ impl Config {
                 kind: TabType::Fields,
                 relationship: None,
             }];
-            for r in self
-                .relationships
-                .iter()
-                .filter(|r| r.parent_entity == page.entity)
-            {
+            for r in self.relationships.iter().filter(|r| {
+                r.parent_entity == page.entity
+                    && !self
+                        .pages
+                        .iter()
+                        .any(|p| p.related_views.iter().any(|v| v.relationship == r.id))
+            }) {
                 tabs.push(Tab {
                     title: r.child_entity.clone(),
                     kind: TabType::Relationship,

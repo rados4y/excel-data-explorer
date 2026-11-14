@@ -364,6 +364,7 @@ impl Engine {
                 filters: Vec::new(),
                 fixed_filters: BTreeMap::new(),
                 hidden: hidden_sheets.contains(&sheet.name),
+                related_views: Vec::new(),
             };
             c.sources.push(source);
             c.pages.push(page);
@@ -437,6 +438,7 @@ impl Engine {
             filters: filters.keys().cloned().collect(),
             fixed_filters: filters,
             hidden: false,
+            related_views: Vec::new(),
         };
         c.validate_page(&page)?;
         c.pages.push(page.clone());

@@ -19,7 +19,7 @@ class DemoTests(unittest.TestCase):
                 generate(second)
             files = {p.relative_to(first): p.read_bytes() for p in first.rglob('*') if p.is_file()}
             self.assertEqual(files, {p.relative_to(second): p.read_bytes() for p in second.rglob('*') if p.is_file()})
-            self.assertEqual(len(list(first.rglob('*.xlsx'))), 11)
+            self.assertEqual(len(list(first.rglob('*.xlsx'))), 12)
 
     def test_offline_toggle_and_recovery_do_not_overwrite_a_saved_sample(self):
         with tempfile.TemporaryDirectory() as directory:

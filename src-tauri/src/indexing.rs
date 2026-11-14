@@ -109,9 +109,39 @@ pub fn rebuild_relationships(c: &Connection, config: &Config, run: Option<i64>) 
     )?;
     for rel in &config.relationships {
         let id = db::qualified(ws, &rel.id);
-        c.execute("INSERT OR IGNORE INTO record_relationships(relationship_id,workspace_id,parent_record_id,child_record_id) SELECT ?,?,p.id,ch.id FROM records p CROSS JOIN record_field_index pf ON pf.record_id=p.id AND pf.field_name=? CROSS JOIN record_field_index cf ON cf.field_name=? AND cf.text_value=pf.text_value CROSS JOIN records ch ON ch.id=cf.record_id AND ch.workspace_id=p.workspace_id AND ch.namespace=p.namespace WHERE p.workspace_id=? AND p.entity_type=? AND p.active=1 AND ch.entity_type=? AND ch.active=1",params![id,ws,rel.parent_field,rel.child_field,ws,rel.parent_entity,rel.child_entity])?;
+        let mut args = vec![
+            id.clone(),
+            ws.clone(),
+            rel.parent_field.clone(),
+            rel.child_field.clone(),
+            ws.clone(),
+            rel.parent_entity.clone(),
+            rel.child_entity.clone(),
+        ];
+        let scope =
+            if let (Some(parent), Some(child)) = (&rel.parent_source_id, &rel.child_source_id) {
+                args.push(db::qualified(ws, parent));
+                args.push(db::qualified(ws, child));
+                "AND p.source_definition_id=? AND ch.source_definition_id=?"
+            } else {
+                "AND ch.namespace=p.namespace"
+            };
+        c.execute(&format!("INSERT OR IGNORE INTO record_relationships(relationship_id,workspace_id,parent_record_id,child_record_id) SELECT ?,?,p.id,ch.id FROM records p CROSS JOIN record_field_index pf ON pf.record_id=p.id AND pf.field_name=? CROSS JOIN record_field_index cf ON cf.field_name=? AND cf.text_value=pf.text_value CROSS JOIN records ch ON ch.id=cf.record_id AND ch.workspace_id=p.workspace_id WHERE p.workspace_id=? AND p.entity_type=? AND p.active=1 AND ch.entity_type=? AND ch.active=1 {scope}"),rusqlite::params_from_iter(args))?;
         if let Some(run) = run {
-            c.execute("INSERT INTO import_errors(import_id,severity,source_id,sheet,row,field,code,message) SELECT ?,'warning',s.source_id,ch.source_sheet,ch.source_row,?,'unmatched_relation','No matching parent in the same workspace and namespace' FROM records ch JOIN source_definitions s ON s.id=ch.source_definition_id WHERE ch.workspace_id=? AND ch.entity_type=? AND ch.active=1 AND NOT EXISTS(SELECT 1 FROM record_relationships rr INDEXED BY related_child WHERE rr.relationship_id=? AND rr.child_record_id=ch.id)",params![run,rel.child_field,ws,rel.child_entity,id])?;
+            let mut args: Vec<rusqlite::types::Value> = vec![
+                run.into(),
+                rel.child_field.clone().into(),
+                ws.clone().into(),
+                rel.child_entity.clone().into(),
+                id.into(),
+            ];
+            let scope = if let Some(child) = &rel.child_source_id {
+                args.push(db::qualified(ws, child).into());
+                "AND ch.source_definition_id=?"
+            } else {
+                ""
+            };
+            c.execute(&format!("INSERT INTO import_errors(import_id,severity,source_id,sheet,row,field,code,message) SELECT ?,'warning',s.source_id,ch.source_sheet,ch.source_row,?,'unmatched_relation','No matching parent in the configured workspace and relationship scope' FROM records ch JOIN source_definitions s ON s.id=ch.source_definition_id WHERE ch.workspace_id=? AND ch.entity_type=? AND ch.active=1 AND NOT EXISTS(SELECT 1 FROM record_relationships rr INDEXED BY related_child WHERE rr.relationship_id=? AND rr.child_record_id=ch.id) {scope}"),rusqlite::params_from_iter(args))?;
         }
     }
     Ok(())

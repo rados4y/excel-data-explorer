@@ -1,5 +1,5 @@
 # Demo workspaces
-Five ready-to-open examples with **11 Excel workbooks, 5 YAML configurations, 8 sample PDFs, 5 screenshots, and expected-result manifests**. All data is synthetic. Workbook variants for the synchronization example are included in the count.
+Six ready-to-open examples with **12 Excel workbooks, 6 YAML configurations, 8 sample PDFs, 6 screenshots, and expected-result manifests**. All data is synthetic. Workbook variants for the synchronization example are included in the count.
 
 You can also choose **Add Excel** and select any included workbook without importing YAML. That creates generic worksheet pages automatically. For the relationship/document mappings and screenshots below, use the optional YAML profile. See the [space/page guide](../docs/SPACES_AND_PAGES.md).
 
@@ -18,6 +18,7 @@ Each example has its own workspace ID and local `data/` / `documents/` roots. Yo
 | [03 — Separate namespaces](03-namespaces/README.md) | `north.xlsx`, `south.xlsx` | 4 offers, 4 invoices | Identical offer IDs in independent projects |
 | [04 — Documents and orphans](04-documents-and-orphans/README.md) | `offers.xlsx`, `invoices.xlsx` | 2 offers, 5 invoices | Missing PDF, blocked paths/extensions, unmatched parent warning |
 | [05 — Sync and recovery](05-sync-recovery/README.md) | Active `offers.xlsx` plus 3 scenario workbooks | 2 → 3 → 3 cached offers on a failed update | Background reconciliation, rollback, offline browsing and recovery |
+| [06 — Nested related views](06-nested-views/README.md) | `project.xlsx` with Offers / Invoices / Protocols | 6 offers, 8 invoices, 3 protocols | Configure child views in-app; single-click an offer to see both lists |
 
 ## 01 — Follow an offer to its invoices and protocol
 Add [01-offers-and-finance/workspace.yaml](01-offers-and-finance/workspace.yaml). Open **OFF-001**: Invoices shows **INV-1001** and **INV-1045**; Protocols shows **PR-022**; Documents contains three available PDFs. Double-click an invoice and open its PDF in the desktop app.
@@ -59,12 +60,17 @@ This helper intentionally changes **only the synthetic example input**. The appl
 
 ![Sync center shows a duplicate-key error while the previous three offers remain cached](05-sync-recovery/preview.png)
 
+## 06 — Configure nested views in the app
+Add [06-nested-views/data/project.xlsx](06-nested-views/data/project.xlsx) without YAML, choose **Offers → Related views**, and match **OfferID → OfferID** for the Invoices and Protocols child views. Selecting an offer shows both lists. Or import [the ready-made profile](06-nested-views/workspace.yaml), which hides child sidebar pages and uses compact child columns. [Complete walkthrough](06-nested-views/README.md).
+
+![Offer overview showing invoices and protocols simultaneously](06-nested-views/preview.png)
+
 ## Regenerate, validate and capture images
 Run these commands from the repository root:
 
 ```sh
 npm run demo:samples
-# Or regenerate both the original larger fixture and these five examples:
+# Or regenerate both the original larger fixture and these six examples:
 npm run demo
 
 npm run test:core
@@ -73,7 +79,7 @@ npm run core:build
 npx playwright install chromium
 npm run test:e2e
 
-# Regenerate the five preview.png files from real app/SQLite data:
+# Regenerate the six preview.png files from real app/SQLite data:
 npm run demo:images
 ```
 

@@ -84,7 +84,8 @@ async fn dispatch(
             }
             other => {
                 let workspace = match &other {
-                    Request::RenameSpace { workspace_id, .. }
+                    Request::SaveNestedViews { workspace_id, .. }
+                    | Request::RenameSpace { workspace_id, .. }
                     | Request::SavePage { workspace_id, .. }
                     | Request::CreateView { workspace_id, .. }
                     | Request::UpdateWorksheet { workspace_id, .. } => Some(workspace_id.clone()),
@@ -94,6 +95,7 @@ async fn dispatch(
                 let changed = matches!(
                     &other,
                     Request::CreateSpace { .. }
+                        | Request::SaveNestedViews { .. }
                         | Request::RenameSpace { .. }
                         | Request::AddExcelWorkbook { .. }
                         | Request::SavePage { .. }

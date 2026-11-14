@@ -173,3 +173,40 @@ test("sample 05: failed sync preserves the last successful generation", async ({
     await core.close();
   }
 });
+
+test("sample 06: selecting an offer shows invoices and protocols together", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1536, height: 1100 });
+  const name = "06-nested-views";
+  const core = await SampleCore.start(name);
+  try {
+    await core.connect(page);
+    await page.getByRole("gridcell", { name: "OFF-001", exact: true }).click();
+    const invoices = page.getByRole("region", {
+      name: "Related Invoices",
+      exact: true,
+    });
+    const protocols = page.getByRole("region", {
+      name: "Related Protocols",
+      exact: true,
+    });
+    await expect(invoices.getByText("INV-1001", { exact: true })).toBeVisible();
+    await expect(invoices.getByText("INV-1045", { exact: true })).toBeVisible();
+    await expect(protocols.getByText("PR-022", { exact: true })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Page Invoices", exact: true }),
+    ).toHaveCount(0);
+    await picture(page, name);
+    await page.getByRole("gridcell", { name: "OFF-002", exact: true }).click();
+    await expect(invoices.getByText("INV-2001", { exact: true })).toBeVisible();
+    await expect(invoices.getByText("INV-1001", { exact: true })).toHaveCount(
+      0,
+    );
+    await expect(
+      protocols.getByText("No related records.", { exact: true }),
+    ).toBeVisible();
+  } finally {
+    await core.close();
+  }
+});

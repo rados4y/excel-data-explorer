@@ -8,9 +8,11 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { api, formatTime, label } from "./api";
+import { NestedRecords } from "./NestedRecords";
 import type { Config, DataRecord, Document, Page } from "./types";
 interface Props {
   recordId: string;
+  pageId: string;
   config: Config;
   revision: number;
   visibleColumns?: string[];
@@ -18,8 +20,10 @@ interface Props {
   onError: (s: string) => void;
 }
 export function Details(p: Props) {
-  const [trail, setTrail] = useState<string[]>([p.recordId]);
-  const id = trail.at(-1)!;
+  const [trail, setTrail] = useState([{ id: p.recordId, pageId: p.pageId }]);
+  const context = trail.at(-1)!;
+  const id = context.id;
+  const currentPage = p.config.pages?.find((v) => v.id === context.pageId);
   const [record, setRecord] = useState<DataRecord | null>(null),
     [tab, setTab] = useState("Overview"),
     [related, setRelated] = useState<Page | null>(null),
@@ -27,12 +31,14 @@ export function Details(p: Props) {
     [offset, setOffset] = useState(0);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
-    setTrail([p.recordId]);
+    setTrail([{ id: p.recordId, pageId: p.pageId }]);
+    setOffset(0);
     setTab("Overview");
-  }, [p.recordId]);
+  }, [p.recordId, p.pageId]);
   useEffect(() => {
     let active = true;
     setLoading(true);
+    setRecord(null);
     api("get_record", { record_id: id })
       .then((r) => {
         if (active) {
@@ -50,7 +56,11 @@ export function Details(p: Props) {
       active = false;
     };
   }, [id, p.revision]);
-  const main = record?.entity_type === p.config.views.main.entity;
+  const main =
+    context.pageId === p.pageId &&
+    record?.entity_type === p.config.views.main.entity;
+  const visibleColumns =
+    currentPage?.columns || (main ? p.visibleColumns : undefined);
   const source = p.config.sources.find((s) => s.id === record?.source_id);
   const tabs: Config["views"]["detail"]["tabs"] = main
     ? p.config.views.detail.tabs
@@ -123,7 +133,15 @@ export function Details(p: Props) {
                   record.fields[p.config.views.detail.title_field] ??
                     record.business_key,
                 )
-              : record?.business_key || "Loading…"}
+              : record && currentPage
+                ? String(
+                    record.fields[
+                      currentPage.columns.includes(source?.key || "")
+                        ? source!.key
+                        : currentPage.columns[0]
+                    ] ?? "—",
+                  )
+                : record?.business_key || "Loading…"}
           </h2>
           <p>
             {p.config.managed && source ? source.sheet : record?.entity_type}{" "}
@@ -158,10 +176,7 @@ export function Details(p: Props) {
             <dl className="fields">
               {Object.entries(record.fields)
                 .filter(
-                  ([key]) =>
-                    !main ||
-                    !p.visibleColumns ||
-                    p.visibleColumns.includes(key),
+                  ([key]) => !visibleColumns || visibleColumns.includes(key),
                 )
                 .map(([key, v]) => (
                   <div key={key}>
@@ -174,6 +189,24 @@ export function Details(p: Props) {
                   </div>
                 ))}
             </dl>
+            {currentPage?.related_views?.map((link) => {
+              const child = p.config.pages?.find((v) => v.id === link.page_id);
+              return child ? (
+                <NestedRecords
+                  key={`${id}:${link.id}:${p.revision}`}
+                  config={p.config}
+                  parentPageId={currentPage.id}
+                  recordId={id}
+                  link={link}
+                  child={child}
+                  onOpen={(r, pageId) => {
+                    setTrail((t) => [...t, { id: r.id, pageId }]);
+                    setTab("Overview");
+                    setOffset(0);
+                  }}
+                />
+              ) : null;
+            })}
             <details className="provenance">
               <summary>Source details</summary>
               <dl>
@@ -201,13 +234,13 @@ export function Details(p: Props) {
                 className="related-card"
                 key={r.id}
                 onDoubleClick={() => {
-                  setTrail((t) => [...t, r.id]);
+                  setTrail((t) => [...t, { id: r.id, pageId: "" }]);
                   setTab("Overview");
                   setOffset(0);
                 }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
-                    setTrail((t) => [...t, r.id]);
+                    setTrail((t) => [...t, { id: r.id, pageId: "" }]);
                     setTab("Overview");
                     setOffset(0);
                   }

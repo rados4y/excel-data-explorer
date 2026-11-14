@@ -27,6 +27,8 @@ export interface Source {
   fields: Record<string, Field>;
 }
 export interface Relationship {
+  parent_source_id?: string | null;
+  child_source_id?: string | null;
   id: string;
   parent_entity: string;
   child_entity: string;
@@ -157,7 +159,21 @@ export interface ViewState {
   widths?: Record<string, number>;
 }
 
+export interface RelatedView {
+  id: string;
+  title: string;
+  relationship: string;
+  page_id: string;
+}
+export interface NestedViewInput {
+  id?: string | null;
+  title: string;
+  page_id: string;
+  parent_field: string;
+  child_field: string;
+}
 export interface PageDefinition {
+  related_views?: RelatedView[];
   id: string;
   title: string;
   entity: string;

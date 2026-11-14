@@ -57,13 +57,29 @@ The **Columns** button edits the current page or view. At least one column remai
 
 Visibility controls are personal display preferences, **not access permissions or data deletion**. This app still has one local user. Raw cached records, other views, related records and advanced YAML commands may expose the same data. No multi-user roles or row/column security system is introduced.
 
+## Nested views: Offers → Invoices and Protocols
+
+Place the three worksheets in the same space (one workbook does this automatically). From the Offers page or a saved Offers view, click **Related views**. Add an Invoices child list with parent **OfferID** and child **OfferID**, then add a Protocols list with the same matching fields. Give each list a title and save. No YAML or reimport is needed to build links from cached data.
+
+![Related view editor with two worksheet joins](nested-view-editor.png)
+
+Single-click or keyboard-select an offer. Its overview shows both child lists together, including counts and an explicit empty state. Each list requests bounded 25-row pages from SQLite; large lists have independent paging. Click a child row or use Enter/Space to open its details. **Back to parent record** returns to the previous level. Configure related lists on that child view to continue nesting.
+
+Child views retain visible columns, sorting and authoritative saved filters. The join field can be hidden from the child table. A page hidden from sidebar navigation can still be selected as a related child view. Each parent page/view owns its ordered list of links; another saved view over Offers can use different child lists. Reorder or remove links in the editor. Removing a list keeps source records and other pages' links.
+
+Choose a real business identifier, not the automatic Row field. Joins compare exact normalized values, with matching types and consistent trimming. Empty keys do not manufacture parent rows. Nonunique parent fields can match children to multiple parent records; choose an offer's unique identifier for ordinary one-to-many relationships.
+
+Links explicitly pair two source definitions inside one space. They can connect the separately namespaced worksheets created by Add Excel without changing their namespaces or record IDs. The engine validates both source IDs and both field types, scopes all edges to that pair and workspace, and keeps the default same-namespace rule for legacy unscoped YAML relationships. Cross-space links are rejected.
+
+Try [sample 06](../demo/06-nested-views/README.md) for a three-sheet workbook, optional ready-made configuration and screenshot. Legacy main pages combining multiple sources retain their YAML relationship tabs; create a worksheet-specific saved view to configure the new nested lists.
+
 ## Persistence, offline behavior and advanced YAML
 
 App-created spaces/configuration live in SQLite under the normal local user data directory. There is no external configuration file to maintain. Page/column visibility, view creation and space renaming work from cache without Excel. Presentation edits do not invalidate source fingerprints or force reimport. Mapping/key/type changes request reimport; failures preserve the last successful dataset.
 
 Workbook paths remain references to the files you selected; the app does not edit, move or duplicate them as user data. Keep workbooks at those paths. Copies made for parsing are private temporary snapshots.
 
-**Import YAML** remains available for existing workspaces, explicit relationships, document mappings and other advanced configuration. Those profiles retain their original main/detail behavior and appear as spaces with an initial main page. Editing them through the GUI creates an app-managed persisted profile and leaves the original YAML file unchanged. Explicitly importing the original YAML again replaces the active profile for its workspace ID, including its page definitions. YAML remains optional for the basic space/page workflow; relationships and document roots are not inferred automatically from arbitrary column names.
+**Import YAML** remains available for existing workspaces, explicit relationships, document mappings and other advanced configuration. Those profiles retain their original main/detail behavior and appear as spaces with an initial main page. Editing them through the GUI creates an app-managed persisted profile and leaves the original YAML file unchanged. Explicitly importing the original YAML again replaces the active profile for its workspace ID, including its page definitions. YAML remains optional for spaces, worksheet mappings and nested view relationships. Document mappings/allowed roots still use advanced YAML. Relationships and document roots are not inferred automatically from arbitrary column names.
 
 ## Verification and screenshots
 

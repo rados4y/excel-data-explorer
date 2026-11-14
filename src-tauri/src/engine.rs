@@ -250,10 +250,13 @@ impl Engine {
             })
             .transpose()?;
         if let Some(page) = &page {
-            ensure!(
-                related.is_none() && page.entity == entity,
-                "Page/entity scope mismatch"
-            );
+            ensure!(page.entity == entity, "Page/entity scope mismatch");
+            // Hidden navigation pages remain usable as explicitly linked child views.
+            if related.is_some() {
+                if let Some(p) = config.pages.iter_mut().find(|p| p.id == page.id) {
+                    p.hidden = false;
+                }
+            }
             config = config.for_page(&page.id)?;
         }
         let fields = config.entity_fields(entity)?;
@@ -311,6 +314,16 @@ impl Engine {
                     && entity == rel.child_entity,
                 "Relationship scope mismatch"
             );
+            if let Some(source) = &rel.parent_source_id {
+                ensure!(
+                    &p.source_id == source,
+                    "Relationship parent worksheet mismatch"
+                );
+            }
+            if let Some(source) = &rel.child_source_id {
+                clauses.push("r.source_definition_id=?".into());
+                args.push(db::qualified(workspace, source).into());
+            }
             clauses.push("r.id IN(SELECT rr.child_record_id FROM record_relationships rr WHERE rr.parent_record_id=? AND rr.relationship_id=?)".into());
             args.push(parent.to_string().into());
             args.push(db::qualified(workspace, relation).into());

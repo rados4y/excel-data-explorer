@@ -24,6 +24,7 @@ import {
 import { api, formatTime, freshness, isTauri, label } from "./api";
 import { Grid } from "./Grid";
 import { Details } from "./Details";
+import { RelatedViewsDialog } from "./RelatedViewsDialog";
 import { SyncCenter } from "./SyncCenter";
 import {
   AddExcelDialog,
@@ -45,6 +46,7 @@ import type {
 } from "./types";
 const blank: Page = { records: [], total: 0, offset: 0, limit: 100 };
 type Editor =
+  | { kind: "related"; page: PageDefinition }
   | { kind: "space" }
   | { kind: "excel"; files: string[] }
   | { kind: "pages" }
@@ -709,6 +711,16 @@ export default function App() {
                       <Columns3 size={15} />
                       Columns
                     </button>
+                    {activePage?.source_id && (
+                      <button
+                        className="button"
+                        onClick={() =>
+                          setEditor({ kind: "related", page: activePage })
+                        }
+                      >
+                        Related views
+                      </button>
+                    )}
                     <button className="button sync-button" onClick={sync}>
                       <RefreshCw
                         size={15}
@@ -764,7 +776,15 @@ export default function App() {
                     }))
                   }
                   selectedId={view.selectedId}
-                  onSelect={(r) => setView((v) => ({ ...v, selectedId: r.id }))}
+                  onSelect={(r) => {
+                    const nested = !!activePage?.related_views?.length;
+                    if (nested) setDetail(r.id);
+                    setView((v) => ({
+                      ...v,
+                      selectedId: r.id,
+                      ...(nested ? { detailId: r.id } : {}),
+                    }));
+                  }}
                   onOpen={(r) => {
                     setDetail(r.id);
                     setView((v) => ({
@@ -817,6 +837,7 @@ export default function App() {
               {detail && (
                 <Details
                   recordId={detail}
+                  pageId={pageId}
                   config={config}
                   revision={revision}
                   visibleColumns={config.views.main.columns}
@@ -893,6 +914,14 @@ export default function App() {
           initialFilters={view.filters}
           onClose={() => setEditor(null)}
           onSaved={changed}
+        />
+      )}
+      {editor?.kind === "related" && root && (
+        <RelatedViewsDialog
+          config={root}
+          page={editor.page}
+          onClose={() => setEditor(null)}
+          onSaved={() => changed()}
         />
       )}
       {editor?.kind === "worksheet" && root && (

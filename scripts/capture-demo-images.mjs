@@ -8,7 +8,7 @@ const cli = join(
 );
 const child = spawn(
   process.execPath,
-  [cli, "test", "gallery.spec.ts", "spaces.spec.ts"],
+  [cli, "test", "gallery.spec.ts", "spaces.spec.ts", "nested.spec.ts"],
   {
     stdio: "inherit",
     env: { ...process.env, EDE_CAPTURE_DEMO_IMAGES: "1" },

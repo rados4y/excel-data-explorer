@@ -68,6 +68,18 @@ pub enum Request {
         value: Value,
     },
     OpenLogs,
+    SaveNestedViews {
+        workspace_id: String,
+        page_id: String,
+        views: Vec<crate::nested::NestedViewInput>,
+    },
+    GetNestedRecords {
+        workspace_id: String,
+        parent_page_id: String,
+        view_id: String,
+        record_id: String,
+        options: QueryOptions,
+    },
     InspectWorkbook {
         file_path: String,
         sheet: Option<String>,
@@ -198,6 +210,27 @@ impl Engine {
                 json!(null)
             }
             Request::OpenLogs => json!(null),
+            Request::SaveNestedViews {
+                workspace_id,
+                page_id,
+                views,
+            } => {
+                self.save_nested_views(&workspace_id, &page_id, views)?;
+                json!(null)
+            }
+            Request::GetNestedRecords {
+                workspace_id,
+                parent_page_id,
+                view_id,
+                record_id,
+                options,
+            } => serde_json::to_value(self.nested_records(
+                &workspace_id,
+                &parent_page_id,
+                &view_id,
+                &record_id,
+                options,
+            )?)?,
             Request::InspectWorkbook {
                 file_path,
                 sheet,

@@ -1,0 +1,29 @@
+{
+  "workspace_id": "sample-nested",
+  "record_counts": {
+    "offer": 6,
+    "invoice": 8,
+    "protocol": 3
+  },
+  "document_status_counts": {},
+  "orphan_count": 0,
+  "relationships": [
+    {
+      "namespace": "offers",
+      "parent": "OFF-001",
+      "relation": "nested_offer_invoices",
+      "children": [
+        "INV-1001",
+        "INV-1045"
+      ]
+    },
+    {
+      "namespace": "offers",
+      "parent": "OFF-001",
+      "relation": "nested_offer_protocols",
+      "children": [
+        "PR-022"
+      ]
+    }
+  ]
+}

@@ -9,12 +9,13 @@ use std::{
     path::{Path, PathBuf},
 };
 
-const SAMPLES: [&str; 5] = [
+const SAMPLES: [&str; 6] = [
     "01-offers-and-finance",
     "02-alternate-layout",
     "03-namespaces",
     "04-documents-and-orphans",
     "05-sync-recovery",
+    "06-nested-views",
 ];
 fn copy_tree(source: &Path, target: &Path) {
     std::fs::create_dir_all(target).unwrap();

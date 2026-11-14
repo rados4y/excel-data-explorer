@@ -15,7 +15,7 @@ npm run demo
 
 The app opens to an empty home screen on a fresh installation. Existing spaces/caches are restored on subsequent launches. Click **Add Excel workbook** and select one or more files: by default, each workbook creates its own space, and every worksheet becomes a separate page. Or create a named empty space first and select it as the import target. No YAML file is needed.
 
-Use **Worksheet settings** to set the header row, choose a unique ID, map columns, edit labels/types and request synchronization. **New view** creates another view over a worksheet with its own column selection, sort and saved filters. **Columns** changes the current page's visible columns; **Manage pages and views** hides/shows worksheet pages and renames spaces. These display choices persist and continue to work from cached data while Excel is offline.
+Use **Worksheet settings** to set the header row, choose a unique ID, map columns, edit labels/types and request synchronization. **Related views** defines child lists such as Offers → Invoices / Protocols using matching fields. **New view** creates another view over a worksheet with its own column selection, sort and saved filters. **Columns** changes the current page's visible columns; **Manage pages and views** hides/shows worksheet pages and renames spaces. These display choices persist and continue to work from cached data while Excel is offline.
 
 ![Fresh startup without a configuration file](docs/spaces-welcome.png)
 
@@ -45,7 +45,7 @@ Search, filters, tables and related-record tabs query SQLite; they do not reread
 
 ## Sample gallery
 
-The [demo folder](demo/README.md) contains **five self-contained examples**, **11 XLSX files**, **5 YAML profiles**, **8 synthetic PDFs**, expected-result manifests, and a screenshot for each example. Files are already generated; no private data is needed. Copy an entire example folder if desired. Use **Add Excel** to browse its raw workbooks as worksheet pages, or **Import YAML → its `workspace.yaml` → select space → Sync now** for the configured relational walkthrough. All input/document paths are relative to that YAML file.
+The [demo folder](demo/README.md) contains **six self-contained examples**, **12 XLSX files**, **6 YAML profiles**, **8 synthetic PDFs**, expected-result manifests, and a screenshot for each example. Files are already generated; no private data is needed. Copy an entire example folder if desired. Use **Add Excel** to browse its raw workbooks as worksheet pages, or **Import YAML → its `workspace.yaml` → select space → Sync now** for the configured relational walkthrough. All input/document paths are relative to that YAML file.
 
 | Sample | Configuration | Workbooks | What to try |
 |---|---|---|---|
@@ -54,6 +54,7 @@ The [demo folder](demo/README.md) contains **five self-contained examples**, **1
 | [03 — Separate namespaces](demo/03-namespaces/README.md) | [workspace.yaml](demo/03-namespaces/workspace.yaml) | [north.xlsx](demo/03-namespaces/data/north.xlsx), [south.xlsx](demo/03-namespaces/data/south.xlsx) | Keep repeated OFF-001 IDs distinct and drill into each project's invoices |
 | [04 — Documents and orphans](demo/04-documents-and-orphans/README.md) | [workspace.yaml](demo/04-documents-and-orphans/workspace.yaml) | [offers.xlsx](demo/04-documents-and-orphans/data/offers.xlsx), [invoices.xlsx](demo/04-documents-and-orphans/data/invoices.xlsx) | See an available PDF, a missing file, two blocked references and an orphan warning |
 | [05 — Sync and recovery](demo/05-sync-recovery/README.md) | [workspace.yaml](demo/05-sync-recovery/workspace.yaml) | [active input](demo/05-sync-recovery/data/offers.xlsx), [baseline](demo/05-sync-recovery/scenarios/baseline.xlsx), [updated](demo/05-sync-recovery/scenarios/updated.xlsx), [invalid](demo/05-sync-recovery/scenarios/invalid.xlsx) | Import 2 → 3 offers, reject a duplicate-key update without losing the 3-record cache, then recover |
+| [06 — Nested related views](demo/06-nested-views/README.md) | [workspace.yaml](demo/06-nested-views/workspace.yaml) | [project.xlsx](demo/06-nested-views/data/project.xlsx) | Select an offer to see its invoices and protocols together; configure links in-app |
 
 ### 01 — Offers and finance
 
@@ -85,17 +86,23 @@ Start with two offers; run `python demo/apply_scenario.py updated` from the repo
 
 ![Sample 05: duplicate-key import failure preserves the previously committed cache](demo/05-sync-recovery/preview.png)
 
+### 06 — Nested Offers → Invoices and Protocols
+
+Add [project.xlsx](demo/06-nested-views/data/project.xlsx), open Offers and choose **Related views**. Add Invoices and Protocols child views, matching **OfferID → OfferID** for each. Selecting an offer shows both lists in its overview. Child views keep their columns, filters and sort; click a child row to drill further. Or import the ready-made [workspace.yaml](demo/06-nested-views/workspace.yaml). [Step-by-step walkthrough](demo/06-nested-views/README.md).
+
+![Sample 06: selected offer with invoices and protocols together](demo/06-nested-views/preview.png)
+
 ### Regenerate sample data and images
 
 ```sh
-npm run demo:samples       # Regenerate just the five curated examples
+npm run demo:samples       # Regenerate just the six curated examples
 npm run demo               # Regenerate both original fixtures and the new gallery
 npm run core:build
 npx playwright install chromium
 npm run demo:images        # Capture gallery previews and the space/page editor screenshots
 ```
 
-Regeneration resets synthetic source files and the recovery exercise; authored YAML/configuration guides are left intact. The five images are actual React UI screenshots backed by Rust/SQLite through a test-only IPC bridge; Windows native chrome/events are stubbed for capture. The [demo guide](demo/README.md) explains every file, expected result and regeneration command. The larger 120-offer fixture in `fixtures/demo/` remains available for optional manual import; a fresh app no longer installs a demo space automatically.
+Regeneration resets synthetic source files and the recovery exercise; authored YAML/configuration guides are left intact. The six gallery images are actual React UI screenshots backed by Rust/SQLite through a test-only IPC bridge; Windows native chrome/events are stubbed for capture. The [demo guide](demo/README.md) explains every file, expected result and regeneration command. The larger 120-offer fixture in `fixtures/demo/` remains available for optional manual import; a fresh app no longer installs a demo space automatically.
 
 ## Desktop defaults
 - **Windows sign-in:** autostart enabled, `--background` invocation stays hidden and synchronizes in background.
@@ -128,7 +135,7 @@ node scripts/run.mjs cargo run --manifest-path src-tauri/Cargo.toml --no-default
 
 The `rpc` diagnostic mode accepts newline-delimited typed JSON on stdin, e.g. `{"command":"query_records","workspace_id":"demo","entity_type":"offer","options":{"search":"OFF-001","limit":100}}`. It uses the same engine, not an HTTP server. A plain `npm run dev` browser tab has no native cache connection; use the desktop command for the full app. The Playwright test bridge exists only in tests.
 
-[Verification report](docs/TEST_REPORT.md): 43 Rust, 2 Python demo-helper tests, 6 frontend and 13 real-core browser tests pass on Linux; Windows-target native API/type checking passed. Windows GUI/installer/sign-in acceptance still requires execution on Windows. [Measured performance](docs/PERFORMANCE.md): 70,001-record release benchmark with real latency, import throughput and memory results; full target-scale and Windows metrics remain unmeasured.
+[Verification report](docs/TEST_REPORT.md): 48 Rust, 2 Python demo-helper tests, 6 frontend and 16 real-core browser tests pass on Linux; Windows-target native API/type checking passed. Windows GUI/installer/sign-in acceptance still requires execution on Windows. [Measured performance](docs/PERFORMANCE.md): 70,001-record release benchmark with real latency, import throughput and memory results; full target-scale and Windows metrics remain unmeasured.
 
 ```sh
 python benchmarks/run.py --offers 10000 --output /local/ssd/ede-benchmark
