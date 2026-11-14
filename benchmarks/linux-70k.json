@@ -1,0 +1,64 @@
+{
+  "arch": "x86_64",
+  "database_bytes": 330772480,
+  "default_page": {
+    "p50_ms": 1.825472,
+    "p95_ms": 16.384393,
+    "p99_ms": 40.902904,
+    "samples": 50
+  },
+  "filter_sort": {
+    "p50_ms": 33.191456,
+    "p95_ms": 37.131098,
+    "p99_ms": 125.45795400000002,
+    "samples": 50
+  },
+  "foreground_query_during_import": {
+    "p50_ms": 1.932311,
+    "p95_ms": 3.66783,
+    "p99_ms": 25.140694,
+    "samples": 173
+  },
+  "imports": [
+    {
+      "elapsed_ms": 11301.379137,
+      "imported": true,
+      "workbook": "finance.xlsx"
+    },
+    {
+      "elapsed_ms": 3479.888135,
+      "imported": true,
+      "workbook": "offers.xlsx"
+    }
+  ],
+  "main_records": 10000,
+  "peak_rss_kib": 33500,
+  "platform": "linux",
+  "process_warm_cache_open": {
+    "p50_ms": 1.9559859999999998,
+    "p95_ms": 2.39574,
+    "p99_ms": 16.104067,
+    "samples": 30
+  },
+  "profile": "release",
+  "record_detail": {
+    "p50_ms": 0.27523800000000004,
+    "p95_ms": 0.45560700000000004,
+    "p99_ms": 0.5517799999999999,
+    "samples": 100
+  },
+  "related_tab": {
+    "p50_ms": 1.771031,
+    "p95_ms": 5.502586,
+    "p99_ms": 31.320014999999998,
+    "samples": 100
+  },
+  "search": {
+    "p50_ms": 2.337633,
+    "p95_ms": 7.104725999999999,
+    "p99_ms": 10.677875,
+    "samples": 50
+  },
+  "setup_ms": 7.827769999999999,
+  "windows_launch_restore_idle_cpu_fps": "not measured"
+}

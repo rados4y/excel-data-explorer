@@ -1,0 +1,1 @@
+{"$schema":"../gen/schemas/desktop-schema.json","identifier":"main","description":"Local explorer window; documents open only through validated Rust commands.","windows":["main"],"permissions":["core:default","dialog:allow-open"]}

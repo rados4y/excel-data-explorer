@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.tooling/
+src-tauri/target/
+*.sqlite*
+playwright-report/
+test-results/
+benchmarks/results.local.json
+*.tsbuildinfo
+benchmark-work/
+src-tauri/gen/schemas/
+__pycache__/

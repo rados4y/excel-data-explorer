@@ -1,0 +1,17 @@
+{
+  "offers": 120,
+  "invoices": 241,
+  "protocols": 60,
+  "offer_001": {
+    "invoices": [
+      "INV-1001",
+      "INV-1045"
+    ],
+    "protocols": [
+      "PR-022"
+    ]
+  },
+  "documents_available": 3,
+  "documents_missing": 1,
+  "orphans": 1
+}

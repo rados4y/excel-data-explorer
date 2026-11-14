@@ -1,0 +1,14 @@
+# Data model
+`src-tauri/src/db/schema.sql` is migration 1 (`PRAGMA user_version=1`), applied transactionally. Newer schemas fail without deleting/recreating the database. Future destructive migrations must first back up the database.
+
+SQLite enables foreign keys, WAL, a 5-second busy timeout and a 1,000-page automatic checkpoint. The native shell places it in the local per-user data directory (`%LOCALAPPDATA%/ExcelDataExplorer/cache.sqlite`), independently of configured source roots. Do not put the diagnostic CLI's database on a share.
+
+The schema includes workspaces, immutable config_versions, qualified source_definitions and source_state; records; record_field_index; FTS5 record_fts; relationship_definitions and record_relationships; documents and record_documents; import_runs and import_errors; ui_state and app_settings. All business record identity components are case sensitive. Source IDs and relation IDs are qualified by workspace internally. Stable record IDs are SHA-256 of a JSON tuple `(workspace, entity, namespace, normalized key)`.
+
+The unique identity index includes inactive rows to retain historical source ownership. A different source cannot silently take over a retired identity. Remove a workspace/cache intentionally or use another namespace when transferring ownership (automatic merge/transfer is outside the MVP).
+
+Every mapped non-null field has text and appropriate numeric/date/boolean projections. Decimal canonical text is authoritative; numeric projections approximate sorting and never define identity. Text and numeric lookup indexes, workspace/entity/active and source/generation indexes, parent/child edge indexes, and import history indexes are explicit in the migration. FTS indexes configured searchable fields, keys, and configured main-view search fields. Search quotes each user token for literal prefix matching; SQL and FTS operator injection are prevented.
+
+Each query returns at most 200 rows. The UI pages 100 records and virtualizes visible rows. Offset ordering includes a stable record-ID tie-breaker. Counts and pages share a deferred read transaction. Exact filters are restricted to configuration-defined filter fields. Invalid sort/filter fields and oversized queries are rejected.
+
+A temporary staging SQLite database contains normalized rows, typed field projections, FTS content and document links. Activation rechecks the config hash, detects cross-source ownership conflicts, reconciles source-owned rows, replaces derived projections and edges, and advances all sheets' successful generation in one main-DB transaction. Inactive records remain for stable identity and diagnostics; their projections/links are removed on reconciliation. TEMP files are removed by RAII; startup marks incomplete runs cancelled without touching committed records.

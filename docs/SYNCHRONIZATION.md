@@ -1,0 +1,18 @@
+# Synchronization
+A single Rust worker serializes workbook jobs. Pending jobs are keyed by `(workspace, physical workbook path)` and coalesce rapid requests. The queue is bounded at 256 pending workbooks. A change during an import requests another metadata check afterwards. Main-thread commands use Tauri's blocking pool; parsing never runs in the WebView thread. SQLite connections are opened per operation. The writer gate serializes configuration and activation; reads remain available through WAL snapshots.
+
+Default local scan is 60 seconds and UNC scan is 300 seconds (configurable, minimum 5 seconds). Nonrecursive directory watches survive Excel rename/replace saves. Network sources always have periodic checks. New workspaces are periodically discovered. The worker waits on a condition variable with a 30-second maximum timeout; it does not poll each second. Resume requests a scan, and reconnection is recovered by periodic checks. Watch support is an optimization, not a correctness dependency.
+
+States: queued/checking → snapshotting → parsing/normalizing/validating/staging → activating → succeeded, failed or cancelled. Each source shows the current stage, last checked, last attempted, last successful import, active generation and sanitized diagnostics. Import history records row deltas, elapsed time and combined parse/stage vs activation timings. Notifications invalidate views; authoritative state is always queryable after missed events/restoration.
+
+The fingerprint is size + nanosecond modification time + active normalized config hash. An unchanged healthy source advances last_checked only; it creates no new import run and does not advance last_success. Manual Sync now forces a snapshot even if metadata matches, and overrides pause without changing the pause preference.
+
+Snapshots compare metadata before and after a configured stable interval (default 1,500 ms), copy read-only into a private temporary file, and compare metadata/size after copy. Up to 3 attempts back off exponentially (250 ms, 500 ms…). Read failures preserve cache. Failed sources are retried on subsequent checks and keep stale/error labels until activation succeeds. An unchanged check cannot clear a failed state. Snapshot stability is a heuristic; transaction rollback is the final integrity boundary.
+
+Every sheet configured in one physical workbook is parsed from the same snapshot and activated together. Each different workbook has an independent generation. Missing rows retire only records owned by that workbook's source mappings. Invalid required cells, duplicate identities, missing headers/sheets, config races and database failures all roll back the entire workbook activation.
+
+Relationships are rebuilt for the workspace using normalized typed-field equality and matching namespaces. Children with missing parents remain cached and produce unmatched_relation warnings. Removing a parent removes edges without deleting child source records.
+
+Document status is verified by the worker in batches of up to 5,000 every 30 seconds, selecting links unchecked or older than five minutes, without reimporting workbooks; opening always revalidates canonical root containment, extension and availability. No recursive document discovery is used. No formula or macro execution occurs. Calamine uses cached cell values only.
+
+On Exit, cancellation stops snapshots/staging and rolls back before commit. The native event loop waits asynchronously for worker cleanup before exiting. Startup marks interrupted runs cancelled. Workbook parsing inside Calamine and an OS network operation are not interruptible mid-call; cancellation is checked between rows/chunks/stages. A stalled SMB OS call can delay graceful exit. UI reads remain independent.
