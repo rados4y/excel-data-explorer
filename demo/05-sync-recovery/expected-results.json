@@ -1,0 +1,15 @@
+{
+  "workspace_id": "sample-sync",
+  "record_counts": {
+    "offer": 2
+  },
+  "document_status_counts": {},
+  "orphan_count": 0,
+  "scenarios": {
+    "baseline_count": 2,
+    "updated_count": 3,
+    "invalid_after_updated_count": 3,
+    "offline_after_updated_count": 3,
+    "recovered_count": 2
+  }
+}

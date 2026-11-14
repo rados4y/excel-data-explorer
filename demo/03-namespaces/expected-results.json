@@ -1,0 +1,29 @@
+{
+  "workspace_id": "sample-namespaces",
+  "record_counts": {
+    "offer": 4,
+    "invoice": 4
+  },
+  "document_status_counts": {
+    "available": 4
+  },
+  "orphan_count": 0,
+  "relationships": [
+    {
+      "namespace": "north",
+      "parent": "OFF-001",
+      "relation": "offer_invoices",
+      "children": [
+        "INV-N-001"
+      ]
+    },
+    {
+      "namespace": "south",
+      "parent": "OFF-001",
+      "relation": "offer_invoices",
+      "children": [
+        "INV-S-001"
+      ]
+    }
+  ]
+}

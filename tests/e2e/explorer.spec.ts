@@ -122,10 +122,12 @@ test("search, virtualized rows, drill into invoices and validate a PDF", async (
     .getByRole("button", { name: "Open invoice-1001.pdf", exact: true })
     .click();
   await expect(page.getByRole("alert")).toHaveCount(0);
-  await page.screenshot({
-    path: "docs/explorer-screenshot.png",
-    fullPage: true,
-  });
+  if (process.env.EDE_CAPTURE_DEMO_IMAGES === "1") {
+    await page.screenshot({
+      path: "docs/explorer-screenshot.png",
+      fullPage: true,
+    });
+  }
 });
 test("filters, pagination, workspace mapping and persisted view", async ({
   page,

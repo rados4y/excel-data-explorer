@@ -1,0 +1,26 @@
+{
+  "workspace_id": "sample-documents",
+  "record_counts": {
+    "offer": 2,
+    "invoice": 5
+  },
+  "document_status_counts": {
+    "available": 1,
+    "missing": 1,
+    "blocked": 2
+  },
+  "orphan_count": 1,
+  "relationships": [
+    {
+      "namespace": "primary",
+      "parent": "OFF-001",
+      "relation": "offer_invoices",
+      "children": [
+        "INV-EXE",
+        "INV-GOOD",
+        "INV-MISSING",
+        "INV-TRAVERSAL"
+      ]
+    }
+  ]
+}

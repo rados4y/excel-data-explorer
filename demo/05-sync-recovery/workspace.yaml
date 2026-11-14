@@ -1,0 +1,77 @@
+# All paths are relative to this configuration file. Synthetic data only.
+version: 1
+workspace:
+  id: sample-sync
+  name: Sample 05 - Safe sync and recovery
+roots:
+  data: ./data
+  documents: ./documents
+settings:
+  timezone: Europe/Warsaw
+  local_scan_seconds: 60
+  network_scan_seconds: 300
+  stable_file_check_ms: 1500
+  stable_file_attempts: 3
+  read_only: true
+sources:
+- id: offers
+  path: ${data}/offers.xlsx
+  sheet: Offers
+  entity: offer
+  namespace: primary
+  header_row: 1
+  key: id
+  fields:
+    id:
+      column: OfferID
+      type: string
+      required: true
+      trim: true
+      label: Offer ID
+    customer:
+      column: Customer
+      type: string
+      searchable: true
+    description:
+      column: Description
+      type: string
+      searchable: true
+    amount:
+      column: Amount
+      type: decimal
+    status:
+      column: Status
+      type: string
+      filterable: true
+    created_at:
+      column: CreatedAt
+      type: date
+      label: Created
+relationships: []
+documents: []
+views:
+  main:
+    entity: offer
+    title: Offers
+    columns:
+    - id
+    - customer
+    - description
+    - amount
+    - status
+    - created_at
+    default_sort:
+      field: id
+      direction: asc
+    search_fields:
+    - id
+    - customer
+    - description
+    filters:
+    - status
+  detail:
+    entity: offer
+    title_field: id
+    tabs:
+    - title: Overview
+      type: fields

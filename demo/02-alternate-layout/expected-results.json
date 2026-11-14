@@ -1,0 +1,19 @@
+{
+  "workspace_id": "sample-layout",
+  "record_counts": {
+    "order": 3
+  },
+  "document_status_counts": {},
+  "orphan_count": 0,
+  "keys": [
+    "0007",
+    "0008",
+    "0012"
+  ],
+  "first_record": {
+    "code": "0007",
+    "amount": "123.45",
+    "approved": true,
+    "ordered_at": "2026-04-01"
+  }
+}

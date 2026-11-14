@@ -1,0 +1,71 @@
+# All paths are relative to this configuration file. Synthetic data only.
+version: 1
+workspace:
+  id: sample-layout
+  name: Sample 02 - Alternate layout
+roots:
+  data: ./data
+  documents: ./documents
+settings:
+  timezone: Europe/Warsaw
+  local_scan_seconds: 60
+  network_scan_seconds: 300
+  stable_file_check_ms: 1500
+  stable_file_attempts: 3
+  read_only: true
+sources:
+- id: orders
+  path: ${data}/orders.xlsx
+  sheet: Sales Export
+  entity: order
+  key: code
+  fields:
+    code:
+      column: OrderNumber
+      type: string
+      required: true
+      label: Order number
+    customer:
+      column: CustomerName
+      type: string
+      searchable: true
+      label: Customer
+    amount:
+      column: TotalNet
+      type: decimal
+      label: Net amount
+    approved:
+      column: SignedOff
+      type: boolean
+      filterable: true
+      label: Approved
+    ordered_at:
+      column: OrderedOn
+      type: date
+      label: Ordered on
+views:
+  main:
+    entity: order
+    title: Orders
+    columns:
+    - code
+    - customer
+    - amount
+    - approved
+    - ordered_at
+    default_sort:
+      field: code
+      direction: asc
+    search_fields:
+    - code
+    - customer
+    filters:
+    - approved
+  detail:
+    entity: order
+    title_field: code
+    tabs:
+    - title: Overview
+      type: fields
+    - title: Documents
+      type: related_documents

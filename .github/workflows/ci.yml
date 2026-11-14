@@ -11,6 +11,7 @@ jobs:
         with: { components: rustfmt, clippy }
       - run: npm ci
       - run: npm run demo
+      - run: python -m unittest discover -s demo -p "test_*.py"
       - run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
       - run: cargo test --manifest-path src-tauri/Cargo.toml --locked --no-default-features
       - run: cargo build --manifest-path src-tauri/Cargo.toml --locked --no-default-features
@@ -28,6 +29,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - run: npm ci
       - run: npm run demo
+      - run: python -m unittest discover -s demo -p "test_*.py"
       - run: cargo test --manifest-path src-tauri/Cargo.toml --locked --no-default-features
       - run: cargo check --manifest-path src-tauri/Cargo.toml --locked --features desktop
       - run: npm run build

@@ -14,11 +14,13 @@
     "test:e2e": "playwright test",
     "test:core": "node scripts/run.mjs cargo test --manifest-path src-tauri/Cargo.toml --no-default-features",
     "check": "tsc -b",
-    "format": "prettier --write src tests scripts fixtures/*.mjs *.json *.ts *.html",
+    "format": "prettier --write src tests scripts fixtures/*.mjs demo/*.mjs *.json *.ts *.html",
     "lint": "tsc -b",
-    "format:check": "prettier --check src tests scripts fixtures/*.mjs *.json *.ts *.html",
+    "format:check": "prettier --check src tests scripts fixtures/*.mjs demo/*.mjs *.json *.ts *.html",
     "core:build": "node scripts/run.mjs cargo build --manifest-path src-tauri/Cargo.toml --no-default-features",
-    "lint:core": "node scripts/run.mjs cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --no-default-features -- -D warnings"
+    "lint:core": "node scripts/run.mjs cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --no-default-features -- -D warnings",
+    "demo:samples": "node demo/generate.mjs",
+    "demo:images": "npm run core:build && node scripts/capture-demo-images.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",

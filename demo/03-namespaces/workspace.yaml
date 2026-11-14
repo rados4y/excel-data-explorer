@@ -1,0 +1,173 @@
+# All paths are relative to this configuration file. Synthetic data only.
+version: 1
+workspace:
+  id: sample-namespaces
+  name: Sample 03 - Separate project namespaces
+roots:
+  data: ./data
+  documents: ./documents
+settings:
+  timezone: Europe/Warsaw
+  local_scan_seconds: 60
+  network_scan_seconds: 300
+  stable_file_check_ms: 1500
+  stable_file_attempts: 3
+  read_only: true
+sources:
+- id: north_offers
+  path: ${data}/north.xlsx
+  sheet: Offers
+  entity: offer
+  namespace: north
+  header_row: 1
+  key: id
+  fields:
+    id:
+      column: OfferID
+      type: string
+      required: true
+      trim: true
+      label: Offer ID
+    customer:
+      column: Customer
+      type: string
+      searchable: true
+    amount:
+      column: Amount
+      type: decimal
+    status:
+      column: Status
+      type: string
+      filterable: true
+    project:
+      column: Project
+      type: string
+      searchable: true
+      label: Project
+- id: north_invoices
+  path: ${data}/north.xlsx
+  sheet: Invoices
+  entity: invoice
+  namespace: north
+  key: id
+  fields:
+    id:
+      column: InvoiceID
+      type: string
+      required: true
+      trim: true
+      label: Invoice ID
+    offer_id:
+      column: OfferID
+      type: string
+      required: true
+      trim: true
+    issued_at:
+      column: InvoiceDate
+      type: date
+    amount:
+      column: Amount
+      type: decimal
+    document_path:
+      column: PDF
+      type: string
+- id: south_offers
+  path: ${data}/south.xlsx
+  sheet: Offers
+  entity: offer
+  namespace: south
+  header_row: 1
+  key: id
+  fields:
+    id:
+      column: OfferID
+      type: string
+      required: true
+      trim: true
+      label: Offer ID
+    customer:
+      column: Customer
+      type: string
+      searchable: true
+    amount:
+      column: Amount
+      type: decimal
+    status:
+      column: Status
+      type: string
+      filterable: true
+    project:
+      column: Project
+      type: string
+      searchable: true
+      label: Project
+- id: south_invoices
+  path: ${data}/south.xlsx
+  sheet: Invoices
+  entity: invoice
+  namespace: south
+  key: id
+  fields:
+    id:
+      column: InvoiceID
+      type: string
+      required: true
+      trim: true
+      label: Invoice ID
+    offer_id:
+      column: OfferID
+      type: string
+      required: true
+      trim: true
+    issued_at:
+      column: InvoiceDate
+      type: date
+    amount:
+      column: Amount
+      type: decimal
+    document_path:
+      column: PDF
+      type: string
+relationships:
+- id: offer_invoices
+  parent_entity: offer
+  child_entity: invoice
+  parent_field: id
+  child_field: offer_id
+documents:
+- id: invoice_pdf
+  entity: invoice
+  path_field: document_path
+  root: documents
+  allowed_extensions:
+  - pdf
+views:
+  main:
+    entity: offer
+    title: Offers
+    columns:
+    - id
+    - project
+    - customer
+    - amount
+    - status
+    default_sort:
+      field: id
+      direction: asc
+    search_fields:
+    - id
+    - project
+    - customer
+    filters:
+    - status
+  detail:
+    entity: offer
+    title_field: id
+    tabs:
+    - title: Overview
+      type: fields
+    - title: Invoices
+      type: relationship
+      relationship: offer_invoices
+    - title: Documents
+      type: related_documents

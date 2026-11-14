@@ -18,6 +18,77 @@ Double-click an offer (or select it with arrow keys and press Enter). OFF-001 ha
 
 Add a YAML file through **Add workspace**, select it from the workspace picker and Sync now. Mappings, entities, namespaces, main columns, filters and relation tabs come from configuration. See [the complete configuration contract](docs/CONFIGURATION.md) and [demo YAML](workspaces/demo-workspace.yaml).
 
+## How it works
+
+A YAML configuration tells Explorer which workbook sheets to read, how Excel headers map to typed fields, which string fields identify records, and how records relate. The background worker waits for a stable file, copies a read-only snapshot and parses the configured worksheets. It validates the rows and builds a new indexed generation in local SQLite. A whole workbook activates together; a malformed key, duplicate ID, unavailable file or failed transaction leaves the previous valid cache in place.
+
+```mermaid
+flowchart LR
+    Y[Workspace YAML] --> I[Background import]
+    E[Excel workbooks] --> S[Stable read-only snapshot] --> I
+    I --> V[Normalize and validate]
+    V --> C[(SQLite cache and indexes)]
+    C --> U[Search, filter and drill down]
+    U --> D[Validate a cached document reference]
+    D --> O[Open in the default desktop application]
+```
+
+Search, filters, tables and related-record tabs query SQLite; they do not reread Excel. That is why the last valid data remains browsable while a workbook is disconnected or importing. Documents stay in their folders: the cache stores references and availability, and opening rechecks the allowed root/extension. Sources can have different successful import times, shown in Sync center. There is no Excel writeback or formula/macro execution.
+
+## Sample gallery
+
+The [demo folder](demo/README.md) contains **five self-contained examples**, **11 XLSX files**, **5 YAML profiles**, **8 synthetic PDFs**, expected-result manifests, and a screenshot for each example. Files are already generated; no private data is needed. Copy an entire example folder if desired, then use **Add workspace → its `workspace.yaml` → select workspace → Sync now**. All input/document paths are relative to that YAML file.
+
+| Sample | Configuration | Workbooks | What to try |
+|---|---|---|---|
+| [01 — Offers and finance](demo/01-offers-and-finance/README.md) | [workspace.yaml](demo/01-offers-and-finance/workspace.yaml) | [offers.xlsx](demo/01-offers-and-finance/data/offers.xlsx), [finance.xlsx](demo/01-offers-and-finance/data/finance.xlsx) | 6 offers, 8 invoices, 3 protocols; open OFF-001 and its PDFs |
+| [02 — Alternate layout](demo/02-alternate-layout/README.md) | [workspace.yaml](demo/02-alternate-layout/workspace.yaml) | [orders.xlsx](demo/02-alternate-layout/data/orders.xlsx) | Map different/reordered headers; preserve 0007; normalize decimal, boolean and date values |
+| [03 — Separate namespaces](demo/03-namespaces/README.md) | [workspace.yaml](demo/03-namespaces/workspace.yaml) | [north.xlsx](demo/03-namespaces/data/north.xlsx), [south.xlsx](demo/03-namespaces/data/south.xlsx) | Keep repeated OFF-001 IDs distinct and drill into each project's invoices |
+| [04 — Documents and orphans](demo/04-documents-and-orphans/README.md) | [workspace.yaml](demo/04-documents-and-orphans/workspace.yaml) | [offers.xlsx](demo/04-documents-and-orphans/data/offers.xlsx), [invoices.xlsx](demo/04-documents-and-orphans/data/invoices.xlsx) | See an available PDF, a missing file, two blocked references and an orphan warning |
+| [05 — Sync and recovery](demo/05-sync-recovery/README.md) | [workspace.yaml](demo/05-sync-recovery/workspace.yaml) | [active input](demo/05-sync-recovery/data/offers.xlsx), [baseline](demo/05-sync-recovery/scenarios/baseline.xlsx), [updated](demo/05-sync-recovery/scenarios/updated.xlsx), [invalid](demo/05-sync-recovery/scenarios/invalid.xlsx) | Import 2 → 3 offers, reject a duplicate-key update without losing the 3-record cache, then recover |
+
+### 01 — Offers and finance
+
+Double-click **OFF-001 → Invoices** to find **INV-1001 / INV-1045**; Protocols contains **PR-022**. The Documents tab unifies their three available PDFs. [Full walkthrough](demo/01-offers-and-finance/README.md).
+
+![Sample 01: OFF-001 and its related invoices](demo/01-offers-and-finance/preview.png)
+
+### 02 — Alternate Excel layout
+
+The `Sales Export` sheet uses OrderNumber / CustomerName / TotalNet / SignedOff / OrderedOn, mapped to generic fields without changing Rust or React. Open **0007** to inspect exact `123.45`, boolean `true` and a date-only value. [Field mapping and walkthrough](demo/02-alternate-layout/README.md).
+
+![Sample 02: alternate headers and normalized typed fields](demo/02-alternate-layout/preview.png)
+
+### 03 — Same IDs, different projects
+
+North Campus and South Depot both have **OFF-001**. North's record links only to **INV-N-001**, and south's only to **INV-S-001**. Namespace is part of identity and joins. [Namespace walkthrough](demo/03-namespaces/README.md).
+
+![Sample 03: duplicate offer IDs isolated by project namespace](demo/03-namespaces/preview.png)
+
+### 04 — Document status and unmatched relationships
+
+**OFF-001 → Documents** shows one available PDF, one missing PDF and two blocked references (traversal and executable extension). No executable is supplied. **INV-ORPHAN → OFF-404** remains cached and raises a warning rather than inventing a parent. [Expected statuses and walkthrough](demo/04-documents-and-orphans/README.md).
+
+![Sample 04: available, missing and blocked document references](demo/04-documents-and-orphans/preview.png)
+
+### 05 — Failed sync and recovery
+
+Start with two offers; run `python demo/apply_scenario.py updated` from the repository root and Sync now to reach three. Apply `invalid` and Sync again: the error appears while the three valid cached offers remain. `offline` / `online` simulate disconnection; `baseline` fixes/restores the valid two-offer input. The helper explicitly changes only synthetic demo input, while Explorer remains read-only. [Complete step-by-step exercise](demo/05-sync-recovery/README.md).
+
+![Sample 05: duplicate-key import failure preserves the previously committed cache](demo/05-sync-recovery/preview.png)
+
+### Regenerate sample data and images
+
+```sh
+npm run demo:samples       # Regenerate just the five curated examples
+npm run demo               # Regenerate both original fixtures and the new gallery
+npm run core:build
+npx playwright install chromium
+npm run demo:images        # Capture all five preview.png images using the real backend
+```
+
+Regeneration resets synthetic source files and the recovery exercise; authored YAML/configuration guides are left intact. The five images are actual React UI screenshots backed by Rust/SQLite through a test-only IPC bridge; Windows native chrome/events are stubbed for capture. The [demo guide](demo/README.md) explains every file, expected result and regeneration command. The original larger 120-offer fixture in `fixtures/demo/` remains available as the first-run application demo.
+
 ## Desktop defaults
 - **Windows sign-in:** autostart enabled, `--background` invocation stays hidden and synchronizes in background.
 - **Close window:** hides to tray and keeps the process/cache ready. Tray Open restores it; tray Exit cancels work and terminates.
@@ -29,6 +100,7 @@ Autostart and close-to-tray are configurable in Settings. The tray also offers S
 ## Tests and diagnostics
 ```sh
 npm run test:core
+python -m unittest discover -s demo -p "test_*.py"
 npm run lint:core
 npm test
 npm run build
@@ -48,7 +120,7 @@ node scripts/run.mjs cargo run --manifest-path src-tauri/Cargo.toml --no-default
 
 The `rpc` diagnostic mode accepts newline-delimited typed JSON on stdin, e.g. `{"command":"query_records","workspace_id":"demo","entity_type":"offer","options":{"search":"OFF-001","limit":100}}`. It uses the same engine, not an HTTP server. A plain `npm run dev` browser tab has no native cache connection; use the desktop command for the full app. The Playwright test bridge exists only in tests.
 
-[Verification report](docs/TEST_REPORT.md): 29 Rust, 3 frontend and 4 real-core browser tests pass on Linux; Windows-target native API/type checking passed. Windows GUI/installer/sign-in acceptance still requires execution on Windows. [Measured performance](docs/PERFORMANCE.md): 70,001-record release benchmark with real latency, import throughput and memory results; full target-scale and Windows metrics remain unmeasured.
+[Verification report](docs/TEST_REPORT.md): 34 Rust, 2 Python demo-helper tests, 3 frontend and 9 real-core browser tests pass on Linux; Windows-target native API/type checking passed. Windows GUI/installer/sign-in acceptance still requires execution on Windows. [Measured performance](docs/PERFORMANCE.md): 70,001-record release benchmark with real latency, import throughput and memory results; full target-scale and Windows metrics remain unmeasured.
 
 ```sh
 python benchmarks/run.py --offers 10000 --output /local/ssd/ede-benchmark
