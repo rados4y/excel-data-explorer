@@ -7,6 +7,7 @@ export interface Workspace {
 }
 export interface Field {
   column: string;
+  column_index?: number | null;
   type: "string" | "integer" | "decimal" | "boolean" | "date" | "datetime";
   label?: string;
   searchable: boolean;
@@ -21,6 +22,8 @@ export interface Source {
   entity: string;
   namespace: string;
   key: string;
+  key_mode?: "field" | "row_number";
+  header_row: number;
   fields: Record<string, Field>;
 }
 export interface Relationship {
@@ -33,6 +36,8 @@ export interface Relationship {
 export interface Config {
   workspace: { id: string; name: string };
   sources: Source[];
+  managed?: boolean;
+  pages?: PageDefinition[];
   relationships: Relationship[];
   views: {
     main: {
@@ -78,6 +83,7 @@ export interface Query {
   direction?: "asc" | "desc";
   offset?: number;
   limit?: number;
+  page_id?: string;
 }
 export interface Document {
   id: string;
@@ -140,6 +146,7 @@ export interface ImportError {
   message: string;
 }
 export interface ViewState {
+  pageId?: string;
   search?: string;
   filters?: Record<string, Scalar>;
   sort?: string;
@@ -148,4 +155,37 @@ export interface ViewState {
   selectedId?: string | null;
   detailId?: string | null;
   widths?: Record<string, number>;
+}
+
+export interface PageDefinition {
+  id: string;
+  title: string;
+  entity: string;
+  source_id: string | null;
+  kind: "worksheet" | "view";
+  columns: string[];
+  default_sort: { field: string; direction: "asc" | "desc" };
+  search_fields: string[];
+  filters: string[];
+  fixed_filters: Record<string, Scalar>;
+  hidden: boolean;
+}
+export interface ColumnPreview {
+  id: string;
+  column: string;
+  column_index: number;
+  label: string;
+}
+export interface WorksheetPreview {
+  name: string;
+  header_row: number;
+  columns: ColumnPreview[];
+  rows: Scalar[][];
+  row_count: number;
+  empty: boolean;
+}
+export interface WorkbookPreview {
+  path: string;
+  name: string;
+  worksheets: WorksheetPreview[];
 }

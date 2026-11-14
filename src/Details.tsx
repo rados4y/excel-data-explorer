@@ -13,6 +13,7 @@ interface Props {
   recordId: string;
   config: Config;
   revision: number;
+  visibleColumns?: string[];
   onClose: () => void;
   onError: (s: string) => void;
 }
@@ -50,6 +51,7 @@ export function Details(p: Props) {
     };
   }, [id, p.revision]);
   const main = record?.entity_type === p.config.views.main.entity;
+  const source = p.config.sources.find((s) => s.id === record?.source_id);
   const tabs: Config["views"]["detail"]["tabs"] = main
     ? p.config.views.detail.tabs
     : [
@@ -124,7 +126,11 @@ export function Details(p: Props) {
               : record?.business_key || "Loading…"}
           </h2>
           <p>
-            {record?.entity_type} <ChevronRight size={12} /> {record?.namespace}
+            {p.config.managed && source ? source.sheet : record?.entity_type}{" "}
+            <ChevronRight size={12} />{" "}
+            {p.config.managed && source
+              ? source.path.split(/[\\/]/).at(-1)
+              : record?.namespace}
           </p>
         </div>
       </div>
@@ -150,16 +156,23 @@ export function Details(p: Props) {
           <>
             <div className="section-label">RECORD INFORMATION</div>
             <dl className="fields">
-              {Object.entries(record.fields).map(([key, v]) => (
-                <div key={key}>
-                  <dt>
-                    {p.config.sources.find(
-                      (s) => s.entity === record.entity_type,
-                    )?.fields[key]?.label || label(key)}
-                  </dt>
-                  <dd>{v == null ? "—" : String(v)}</dd>
-                </div>
-              ))}
+              {Object.entries(record.fields)
+                .filter(
+                  ([key]) =>
+                    !main ||
+                    !p.visibleColumns ||
+                    p.visibleColumns.includes(key),
+                )
+                .map(([key, v]) => (
+                  <div key={key}>
+                    <dt>
+                      {p.config.sources.find(
+                        (s) => s.entity === record.entity_type,
+                      )?.fields[key]?.label || label(key)}
+                    </dt>
+                    <dd>{v == null ? "—" : String(v)}</dd>
+                  </div>
+                ))}
             </dl>
             <details className="provenance">
               <summary>Source details</summary>

@@ -1,6 +1,6 @@
 # 01 — Offers, invoices and protocols
 
-Open [workspace.yaml](workspace.yaml) through **Add workspace**, select **Sample 01 - Offers and finance**, then click **Sync now**.
+Open [workspace.yaml](workspace.yaml) through **Import YAML**, select **Sample 01 - Offers and finance**, then click **Sync now**.
 
 Inputs: [offers.xlsx](data/offers.xlsx) contains the `Offers` worksheet; [finance.xlsx](data/finance.xlsx) contains `Invoices` and `Protocols`. The configuration joins `offer.id = invoice.offer_id` / `protocol.offer_id` in namespace `primary`. Both finance sheets publish from one snapshot.
 

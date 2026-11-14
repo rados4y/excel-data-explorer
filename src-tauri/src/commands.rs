@@ -68,6 +68,49 @@ pub enum Request {
         value: Value,
     },
     OpenLogs,
+    InspectWorkbook {
+        file_path: String,
+        sheet: Option<String>,
+        header_row: Option<u32>,
+    },
+    CreateSpace {
+        name: String,
+    },
+    RenameSpace {
+        workspace_id: String,
+        name: String,
+    },
+    AddExcelWorkbook {
+        file_path: String,
+        space_id: Option<String>,
+        name: Option<String>,
+        #[serde(default)]
+        hidden_sheets: Vec<String>,
+    },
+    ListPages {
+        workspace_id: String,
+    },
+    GetPageSchema {
+        workspace_id: String,
+        page_id: String,
+    },
+    SavePage {
+        workspace_id: String,
+        page: crate::config::PageDefinition,
+    },
+    CreateView {
+        workspace_id: String,
+        source_id: String,
+        title: String,
+        columns: Vec<String>,
+        #[serde(default)]
+        filters: std::collections::BTreeMap<String, Value>,
+        sort: Option<crate::config::Sort>,
+    },
+    UpdateWorksheet {
+        workspace_id: String,
+        source: crate::config::Source,
+    },
 }
 impl Engine {
     pub fn dispatch(&self, request: Request) -> Result<Value> {
@@ -155,6 +198,59 @@ impl Engine {
                 json!(null)
             }
             Request::OpenLogs => json!(null),
+            Request::InspectWorkbook {
+                file_path,
+                sheet,
+                header_row,
+            } => serde_json::to_value(self.inspect_workbook(
+                std::path::Path::new(&file_path),
+                sheet.as_deref(),
+                header_row,
+            )?)?,
+            Request::CreateSpace { name } => serde_json::to_value(self.create_space(name)?)?,
+            Request::RenameSpace { workspace_id, name } => {
+                serde_json::to_value(self.rename_space(&workspace_id, name)?)?
+            }
+            Request::AddExcelWorkbook {
+                file_path,
+                space_id,
+                name,
+                hidden_sheets,
+            } => serde_json::to_value(self.add_excel_workbook(
+                std::path::Path::new(&file_path),
+                space_id.as_deref(),
+                name,
+                &hidden_sheets,
+            )?)?,
+            Request::ListPages { workspace_id } => {
+                serde_json::to_value(self.config(&workspace_id)?.effective_pages())?
+            }
+            Request::GetPageSchema {
+                workspace_id,
+                page_id,
+            } => serde_json::to_value(self.config(&workspace_id)?.for_page(&page_id)?)?,
+            Request::SavePage { workspace_id, page } => {
+                serde_json::to_value(self.save_page(&workspace_id, page)?)?
+            }
+            Request::CreateView {
+                workspace_id,
+                source_id,
+                title,
+                columns,
+                filters,
+                sort,
+            } => serde_json::to_value(self.create_view(
+                &workspace_id,
+                &source_id,
+                title,
+                columns,
+                filters,
+                sort,
+            )?)?,
+            Request::UpdateWorksheet {
+                workspace_id,
+                source,
+            } => serde_json::to_value(self.update_worksheet(&workspace_id, source)?)?,
         })
     }
 }

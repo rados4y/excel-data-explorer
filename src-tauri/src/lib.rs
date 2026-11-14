@@ -23,4 +23,5 @@ pub mod documents;
 pub mod engine;
 pub mod importer;
 pub mod indexing;
+pub mod spaces;
 pub mod sync;

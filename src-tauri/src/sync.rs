@@ -124,7 +124,7 @@ impl Engine {
             c.execute("UPDATE source_state SET last_checked_at=CURRENT_TIMESTAMP WHERE source_definition_id=?",[db::qualified(workspace,&s.id)])?;
         }
         let observed = fingerprint(Path::new(path));
-        let hash = config.hash();
+        let hash = config.import_hash();
         if !force {
             if let Ok(ref observed) = observed {
                 let mut unchanged = true;

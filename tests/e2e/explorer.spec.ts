@@ -160,7 +160,7 @@ test("sync center shows source diagnostics and pause preferences", async ({
   page,
 }) => {
   await connect(page);
-  await page.getByLabel("Workspace", { exact: true }).selectOption("demo");
+  await page.getByLabel("Space", { exact: true }).selectOption("demo");
   await page.getByRole("button", { name: "Sync center", exact: false }).click();
   await expect(page.getByRole("dialog", { name: "Sync center" })).toBeVisible();
   await expect(page.getByText("241 cached records")).toBeVisible();
@@ -178,7 +178,7 @@ test("offline source keeps browsable records and shows stale status", async ({
   page,
 }) => {
   await connect(page);
-  await page.getByLabel("Workspace", { exact: true }).selectOption("demo");
+  await page.getByLabel("Space", { exact: true }).selectOption("demo");
   await rpc({ command: "set_sync_paused", paused: false });
   const path = resolve(dir, "fixtures/data/offers.xlsx");
   renameSync(path, path + ".offline");

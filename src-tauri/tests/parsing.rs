@@ -50,6 +50,7 @@ fn multi_sheet_and_alternate_layout() {
 fn field(kind: FieldType) -> Field {
     Field {
         column: "X".into(),
+        column_index: None,
         kind,
         required: true,
         trim: true,

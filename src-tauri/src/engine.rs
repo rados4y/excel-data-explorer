@@ -53,6 +53,7 @@ pub struct QueryOptions {
     pub direction: Option<Direction>,
     pub offset: u64,
     pub limit: Option<u32>,
+    pub page_id: Option<String>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Page {
@@ -104,6 +105,10 @@ impl Engine {
     pub fn add_config(&self, path: &Path) -> Result<WorkspaceSummary> {
         let config = Config::load(path)?;
         let path = std::fs::canonicalize(path)?;
+        self.activate_config(&config, &path.to_string_lossy())
+    }
+    pub fn activate_config(&self, config: &Config, path: &str) -> Result<WorkspaceSummary> {
+        config.validate()?;
         let _guard = self
             .write_gate
             .lock()
@@ -111,7 +116,7 @@ impl Engine {
         let mut c = self.connection()?;
         let tx = c.transaction()?;
         let ws = &config.workspace.id;
-        tx.execute("INSERT INTO workspaces(id,name,config_path) VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,config_path=excluded.config_path,updated_at=CURRENT_TIMESTAMP",params![ws,config.workspace.name,path.to_string_lossy()])?;
+        tx.execute("INSERT INTO workspaces(id,name,config_path) VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,config_path=excluded.config_path,updated_at=CURRENT_TIMESTAMP",params![ws,config.workspace.name,path])?;
         let previous:Option<String>=tx.query_row("SELECT v.config_hash FROM workspaces w JOIN config_versions v ON v.id=w.active_config_version WHERE w.id=?",[ws],|r|r.get(0)).optional()?;
         if previous.as_deref() != Some(&config.hash()) {
             // Removing mappings is an explicit valid config change; retire only their own cached rows.
@@ -149,7 +154,7 @@ impl Engine {
             for rel in &config.relationships {
                 tx.execute("INSERT INTO relationship_definitions(id,workspace_id,definition_json) VALUES(?,?,?)",params![db::qualified(ws,&rel.id),ws,serde_json::to_string(rel)?])?;
             }
-            crate::indexing::rebuild_relationships(&tx, &config, None)?;
+            crate::indexing::rebuild_relationships(&tx, config, None)?;
         }
         tx.commit()?;
         drop(_guard);
@@ -232,7 +237,25 @@ impl Engine {
         options: &QueryOptions,
         related: Option<(&str, &str)>,
     ) -> Result<Page> {
-        let config = self.config(workspace)?;
+        let mut config = self.config(workspace)?;
+        let page = options
+            .page_id
+            .as_ref()
+            .map(|id| {
+                config
+                    .effective_pages()
+                    .into_iter()
+                    .find(|p| &p.id == id)
+                    .context("Page not found")
+            })
+            .transpose()?;
+        if let Some(page) = &page {
+            ensure!(
+                related.is_none() && page.entity == entity,
+                "Page/entity scope mismatch"
+            );
+            config = config.for_page(&page.id)?;
+        }
         let fields = config.entity_fields(entity)?;
         let sort = options
             .sort
@@ -242,6 +265,12 @@ impl Engine {
             } else {
                 fields.keys().next().context("No fields")?
             });
+        if let Some(page) = &page {
+            ensure!(
+                page.columns.iter().any(|f| f == sort),
+                "Sort column is hidden on this page"
+            );
+        }
         let kind = fields.get(sort).context("Unknown sort field")?.kind;
         let direction =
             options
@@ -265,6 +294,10 @@ impl Engine {
         ];
         let mut args: Vec<rusqlite::types::Value> =
             vec![workspace.to_string().into(), entity.to_string().into()];
+        if let Some(source) = page.as_ref().and_then(|p| p.source_id.as_ref()) {
+            clauses.push("r.source_definition_id=?".into());
+            args.push(db::qualified(workspace, source).into());
+        }
         if let Some((parent, relation)) = related {
             let rel = config
                 .relationships
@@ -282,7 +315,17 @@ impl Engine {
             args.push(parent.to_string().into());
             args.push(db::qualified(workspace, relation).into());
         }
-        for (name, value) in &options.filters {
+        let mut filters = options.filters.clone();
+        if let Some(page) = &page {
+            for name in filters.keys() {
+                ensure!(
+                    page.columns.contains(name),
+                    "Filter column is hidden on this page"
+                );
+            }
+            filters.extend(page.fixed_filters.clone());
+        }
+        for (name, value) in &filters {
             let f = fields.get(name).context("Unknown filter field")?;
             ensure!(
                 f.filterable

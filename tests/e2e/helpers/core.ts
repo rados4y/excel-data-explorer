@@ -6,6 +6,7 @@ import {
   readFileSync,
   writeFileSync,
   rmSync,
+  mkdirSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
@@ -22,21 +23,26 @@ export class SampleCore {
     [];
   private failure: Error | null = null;
 
-  private constructor(sampleName: string) {
+  private constructor(sampleName?: string) {
     this.directory = mkdtempSync(resolve(tmpdir(), "ede-gallery-"));
     this.sample = resolve(this.directory, "sample");
-    cpSync(resolve("demo", sampleName), this.sample, { recursive: true });
-    this.workspaceId = JSON.parse(
-      readFileSync(resolve(this.sample, "expected-results.json"), "utf8"),
-    ).workspace_id;
-    const path = resolve(this.sample, "workspace.yaml");
-    writeFileSync(
-      path,
-      readFileSync(path, "utf8").replace(
-        "stable_file_check_ms: 1500",
-        "stable_file_check_ms: 10",
-      ),
-    );
+    if (sampleName) {
+      cpSync(resolve("demo", sampleName), this.sample, { recursive: true });
+      this.workspaceId = JSON.parse(
+        readFileSync(resolve(this.sample, "expected-results.json"), "utf8"),
+      ).workspace_id;
+      const path = resolve(this.sample, "workspace.yaml");
+      writeFileSync(
+        path,
+        readFileSync(path, "utf8").replace(
+          "stable_file_check_ms: 1500",
+          "stable_file_check_ms: 10",
+        ),
+      );
+    } else {
+      mkdirSync(this.sample);
+      this.workspaceId = "";
+    }
     const executable =
       process.env.EDE_CORE_BIN ||
       resolve(
@@ -62,6 +68,9 @@ export class SampleCore {
     this.child.on("exit", (code) =>
       this.fail(new Error(`Rust sample process exited ${code}`)),
     );
+  }
+  static empty() {
+    return new SampleCore();
   }
   private fail(error: Error) {
     this.failure = error;
@@ -97,11 +106,12 @@ export class SampleCore {
       this.child.stdin.write(JSON.stringify(request) + "\n");
     });
   }
-  async connect(page: Page) {
+  async connect(page: Page, excelFiles?: string[]) {
     await page.exposeFunction(
       "sampleCoreInvoke",
       (command: string, args: { request: unknown }) => {
         if (command === "dispatch") return this.call(args.request);
+        if (command === "pick_excel_files") return excelFiles || [];
         if (command === "pick_workspace_config")
           return resolve(this.sample, "workspace.yaml");
         return null;

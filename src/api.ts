@@ -11,6 +11,9 @@ import type {
   SyncStatus,
   ViewState,
   Workspace,
+  Source,
+  PageDefinition,
+  WorkbookPreview,
 } from "./types";
 export interface Commands {
   list_workspaces: [Record<string, never>, Workspace[]];
@@ -47,6 +50,36 @@ export interface Commands {
   get_ui_state: [{ key: string }, ViewState];
   save_ui_state: [{ key: string; value: ViewState }, null];
   open_logs: [Record<string, never>, null];
+  inspect_workbook: [
+    { file_path: string; sheet?: string | null; header_row?: number | null },
+    WorkbookPreview,
+  ];
+  create_space: [{ name: string }, Workspace];
+  rename_space: [{ workspace_id: string; name: string }, Workspace];
+  add_excel_workbook: [
+    {
+      file_path: string;
+      space_id: string | null;
+      name: string | null;
+      hidden_sheets: string[];
+    },
+    Workspace,
+  ];
+  list_pages: [{ workspace_id: string }, PageDefinition[]];
+  get_page_schema: [{ workspace_id: string; page_id: string }, Config];
+  save_page: [{ workspace_id: string; page: PageDefinition }, PageDefinition];
+  create_view: [
+    {
+      workspace_id: string;
+      source_id: string;
+      title: string;
+      columns: string[];
+      filters: Record<string, import("./types").Scalar>;
+      sort: { field: string; direction: "asc" | "desc" } | null;
+    },
+    PageDefinition,
+  ];
+  update_worksheet: [{ workspace_id: string; source: Source }, Config];
 }
 export async function api<K extends keyof Commands>(
   command: K,
@@ -79,6 +112,7 @@ export function freshness(status: SyncStatus | null) {
   if (status.config_errors?.length)
     return "Configuration error — using cached data";
   if (status.paused) return "Paused";
+  if (status.sources.length === 0) return "No sources yet";
   if (status.app_state === "Synchronizing") return "Synchronizing";
   if (status.sources.some((s) => s.status === "unavailable"))
     return "Cached — source unavailable";

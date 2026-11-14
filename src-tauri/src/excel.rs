@@ -1,4 +1,4 @@
-use crate::config::{Config, Field, FieldType, Source};
+use crate::config::{Config, Field, FieldType, KeyMode, Source};
 use anyhow::{bail, ensure, Context, Result};
 use calamine::{open_workbook_auto, Data, DataType, Reader};
 use chrono::{DateTime, NaiveDate, NaiveDateTime, TimeZone};
@@ -143,6 +143,9 @@ where
         })?;
         let formulas = workbook.worksheet_formula(&source.sheet).ok();
         let header_index = source.header_row - 1;
+        if range.is_empty() && source.key_mode == KeyMode::RowNumber {
+            continue;
+        }
         let start = range.start().unwrap_or((0, 0));
         ensure!(
             header_index >= start.0,
@@ -154,25 +157,45 @@ where
             .rows()
             .nth((header_index - start.0) as usize)
             .context("Missing header row")?;
-        let mut columns = BTreeMap::new();
+        let mut names: BTreeMap<String, Vec<u32>> = BTreeMap::new();
         for (i, cell) in headers.iter().enumerate() {
             if !cell.is_empty() {
-                let h = string(cell)?;
-                ensure!(
-                    columns.insert(h.clone(), i).is_none(),
-                    "Source {} duplicate header {h}",
-                    source.id
-                );
+                names
+                    .entry(string(cell)?)
+                    .or_default()
+                    .push(start.1 + i as u32);
             }
         }
-        for f in source.fields.values() {
-            ensure!(
-                columns.contains_key(&f.column),
-                "Source {} sheet {} missing column {}",
-                source.id,
-                source.sheet,
-                f.column
-            );
+        let mut columns = BTreeMap::new();
+        for (name, field) in &source.fields {
+            if source.key_mode == KeyMode::RowNumber && name == &source.key {
+                continue;
+            }
+            let column = if let Some(index) = field.column_index {
+                ensure!(
+                    index > 0 && index - 1 <= range.end().map(|p| p.1).unwrap_or(0),
+                    "Source {} sheet {} missing column {}",
+                    source.id,
+                    source.sheet,
+                    index
+                );
+                index - 1
+            } else {
+                let matches = names.get(&field.column).with_context(|| {
+                    format!(
+                        "Source {} sheet {} missing column {}",
+                        source.id, source.sheet, field.column
+                    )
+                })?;
+                ensure!(
+                    matches.len() == 1,
+                    "Source {} duplicate header {}",
+                    source.id,
+                    field.column
+                );
+                matches[0]
+            };
+            columns.insert(name.clone(), column);
         }
         // Calamine trims trailing empty cached cells. Formula-only rows can extend beyond
         // the value range and must still be validated rather than silently disappearing.
@@ -183,16 +206,22 @@ where
                 .map(|p| p.0)
                 .unwrap_or(header_index),
         );
+        ensure!(
+            !columns.is_empty() || last_row == header_index,
+            "Worksheet has new data but no mapped columns; read headers in worksheet settings"
+        );
         for absolute_row in header_index + 1..=last_row {
-            let has_formula = columns.values().any(|col| {
-                formulas
-                    .as_ref()
-                    .and_then(|r| r.get_value((absolute_row, start.1 + *col as u32)))
-                    .is_some_and(|f| !f.is_empty())
+            let has_formula = formulas.as_ref().is_some_and(|r| {
+                r.start().zip(r.end()).is_some_and(|(first, last)| {
+                    (first.1..=last.1).any(|col| {
+                        r.get_value((absolute_row, col))
+                            .is_some_and(|f| !f.is_empty())
+                    })
+                })
             });
-            let empty = columns.values().all(|col| {
+            let empty = (start.1..=range.end().map(|p| p.1).unwrap_or(start.1)).all(|col| {
                 range
-                    .get_value((absolute_row, start.1 + *col as u32))
+                    .get_value((absolute_row, col))
                     .is_none_or(DataType::is_empty)
             });
             if empty && !has_formula {
@@ -202,10 +231,14 @@ where
             let mut fields = Map::new();
             let mut raw = Map::new();
             for (name, field) in &source.fields {
-                let col = columns[&field.column];
-                let cell = range
-                    .get_value((absolute_row, start.1 + col as u32))
-                    .unwrap_or(&Data::Empty);
+                if source.key_mode == KeyMode::RowNumber && name == &source.key {
+                    let value = Value::String(format!("Row {source_row}"));
+                    fields.insert(name.clone(), value.clone());
+                    raw.insert(name.clone(), value);
+                    continue;
+                }
+                let col = columns[name];
+                let cell = range.get_value((absolute_row, col)).unwrap_or(&Data::Empty);
                 raw.insert(
                     name.clone(),
                     Value::String(string(cell).unwrap_or_else(|_| "<Excel error>".into())),
@@ -213,7 +246,7 @@ where
                 let missing_formula = string(cell).is_ok_and(|s| s.is_empty())
                     && formulas
                         .as_ref()
-                        .and_then(|r| r.get_value((source_row - 1, start.1 + col as u32)))
+                        .and_then(|r| r.get_value((source_row - 1, col)))
                         .is_some_and(|f| !f.is_empty());
                 let result = if missing_formula {
                     Err(anyhow::anyhow!(

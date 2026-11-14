@@ -1005,3 +1005,471 @@ h3 {
     animation: none;
   }
 }
+/* Spaces, worksheet pages and in-app configuration. */
+.sidebar {
+  width: 225px;
+  padding-top: 25px;
+}
+.brand {
+  margin-bottom: 28px;
+}
+.nav-caption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.nav-caption .icon-button {
+  padding: 3px;
+}
+.page-navigation {
+  overflow: auto;
+  max-height: 42vh;
+  min-height: 25px;
+}
+.page-navigation .nav-item > span:first-of-type {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nav-empty {
+  font-size: 11px;
+  color: #8a9b90;
+  padding: 10px 12px;
+  line-height: 1.8;
+}
+.nav-space {
+  margin-top: 23px;
+}
+.add-view-link {
+  font-size: 11px;
+  color: #6a9679;
+}
+.import-yaml-link {
+  font-size: 10px;
+  margin-top: 5px;
+}
+.welcome-panel {
+  border: 1px solid #dfe7e0;
+  border-radius: 12px;
+  background: linear-gradient(160deg, #fff, #f4f9f5);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 35px;
+  gap: 15px;
+}
+.welcome-symbol {
+  width: 82px;
+  height: 82px;
+  display: grid;
+  place-items: center;
+  background: #e7f1e9;
+  border-radius: 20px;
+  color: #4d8761;
+  margin-bottom: 12px;
+}
+.welcome-panel > .eyebrow {
+  margin: 0;
+}
+.welcome-panel h2 {
+  font-size: 27px;
+}
+.welcome-panel > p {
+  max-width: 490px;
+  color: #7e9485;
+  line-height: 1.9;
+  font-size: 12px;
+}
+.welcome-actions {
+  display: flex;
+  gap: 11px;
+  margin: 12px 0 28px;
+}
+.welcome-actions .button {
+  min-height: 39px;
+  font-size: 12px;
+}
+.welcome-steps {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  font-size: 10px;
+  color: #8ca092;
+}
+.welcome-steps span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.welcome-steps strong {
+  border: 1px solid #d3e1d7;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 500;
+}
+.dialog-description {
+  font-size: 11px;
+  color: #8c9e91;
+  line-height: 1.8;
+  max-width: 650px;
+  margin-top: 10px;
+}
+.wide-modal {
+  width: 1030px;
+}
+.space-form {
+  padding-top: 18px;
+}
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: #5e7666;
+  font-size: 11px;
+  margin: 12px 0;
+}
+.form-field > input,
+.form-field > select,
+.saved-filter > input,
+.saved-filter > select {
+  min-height: 36px;
+  padding: 8px 10px;
+  color: #435f4c;
+  background: #fdfefd;
+  border: 1px solid #dce7df;
+  border-radius: 6px;
+  width: 100%;
+  font-size: 12px;
+}
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  border-top: 1px solid #e9efea;
+  margin-top: 22px;
+  padding-top: 18px;
+}
+.form-actions .button {
+  min-height: 35px;
+}
+.form-two-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+.workbook-preview {
+  border: 1px solid #dfe9e2;
+  padding: 20px;
+  border-radius: 9px;
+  margin-top: 18px;
+  background: #fcfefc;
+}
+.preview-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #548263;
+}
+.preview-heading strong {
+  display: block;
+  font-size: 15px;
+}
+.preview-heading small {
+  display: block;
+  font-size: 10px;
+  color: #91a198;
+  margin-top: 6px;
+}
+.worksheet-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 18px;
+}
+.worksheet-choices label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid #e1eae3;
+  border-radius: 6px;
+  padding: 10px 14px;
+  background: #fff;
+  font-size: 11px;
+  color: #607d69;
+}
+.worksheet-choices small {
+  display: block;
+  margin-top: 4px;
+  color: #96a69b;
+  font-size: 9px;
+}
+.space-form input[type="checkbox"] {
+  accent-color: #347c51;
+  width: 15px;
+  height: 15px;
+}
+.sheet-preview-table {
+  max-height: 210px;
+  overflow: auto;
+  background: #fff;
+  border: 1px solid #e5ece7;
+  border-radius: 6px;
+  margin-top: 10px;
+}
+.sheet-preview-table table,
+.mapping-table table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 10px;
+}
+.sheet-preview-table th {
+  background: #f2f7f3;
+  padding: 9px 11px;
+  color: #78927e;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.sheet-preview-table td {
+  padding: 8px 11px;
+  border-top: 1px solid #edf2ee;
+  color: #637d6b;
+  white-space: nowrap;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sheet-preview-table > p {
+  padding: 15px;
+}
+.import-loading {
+  height: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  color: #74927d;
+  font-size: 12px;
+}
+.import-loading > span {
+  font-size: 10px;
+  color: #9aaba0;
+}
+.dialog-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 22px;
+}
+.dialog-section-heading h3 {
+  margin: 0;
+}
+.rename-space {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+.rename-space .form-field {
+  flex: 1;
+}
+.rename-space > .button {
+  margin-bottom: 12px;
+  min-height: 36px;
+}
+.page-settings-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border-bottom: 1px solid #e7eee9;
+  padding: 14px 0;
+}
+.page-settings-row > span {
+  flex: 1;
+}
+.page-settings-row strong,
+.worksheet-mapping-link strong {
+  display: block;
+  font-size: 12px;
+  color: #5b7c65;
+  font-weight: 550;
+}
+.page-settings-row small,
+.worksheet-mapping-link small {
+  display: block;
+  font-size: 10px;
+  color: #91a397;
+  margin-top: 5px;
+}
+.worksheet-mapping-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  padding: 12px 0;
+  width: 100%;
+  border-bottom: 1px solid #e9efea;
+  color: #7a9b85;
+}
+.worksheet-mapping-link > span {
+  flex: 1;
+}
+.column-choice-list {
+  max-height: 270px;
+  overflow: auto;
+  border: 1px solid #e0e9e3;
+  border-radius: 7px;
+  margin: 14px 0;
+}
+.column-choice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #eef2ef;
+  min-height: 39px;
+  padding: 5px 13px;
+}
+.column-choice:last-child {
+  border: 0;
+}
+.column-choice label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: #637d6c;
+  cursor: pointer;
+}
+.check-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  margin-top: 22px;
+  color: #69816f;
+}
+.saved-filter {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 12px;
+}
+.saved-filter > select {
+  width: 40%;
+}
+.saved-filter > span {
+  font-size: 10px;
+  color: #93a79a;
+}
+.saved-filter > input {
+  flex: 1;
+  min-width: 0;
+}
+.mapping-note {
+  padding: 12px 14px;
+  background: #f8f3e8;
+  color: #9a8457;
+  border: 1px solid #ede3cb;
+  font-size: 11px;
+  line-height: 1.8;
+  border-radius: 6px;
+  margin: 10px 0 15px;
+}
+.mapping-table {
+  overflow: auto;
+  margin-top: 18px;
+  border: 1px solid #e2ebe5;
+  border-radius: 6px;
+}
+.mapping-table th {
+  font-size: 10px;
+  white-space: nowrap;
+  padding: 11px;
+  background: #f3f7f4;
+  color: #789080;
+}
+.mapping-table td {
+  padding: 7px 6px;
+  border-top: 1px solid #edf2ee;
+}
+.mapping-table td > input:not([type="checkbox"]),
+.mapping-table select {
+  border: 1px solid #dfe8e2;
+  border-radius: 4px;
+  padding: 6px;
+  font-size: 10px;
+  background: #fff;
+  color: #536f5d;
+  width: 100%;
+  min-width: 105px;
+}
+.mapping-table td:nth-child(2) > input {
+  min-width: 55px;
+  width: 65px;
+}
+.mapping-table input[type="checkbox"] {
+  display: block;
+  margin: auto;
+}
+.view-filter-summary {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  padding: 10px 18px;
+  font-size: 10px;
+  color: #7e9c87;
+  border-bottom: 1px solid #e9f0eb;
+}
+.view-filter-summary > span {
+  background: #edf5ef;
+  padding: 4px 8px;
+  border-radius: 5px;
+}
+.table-caption .back-link {
+  padding: 0;
+  font-size: 10px;
+}
+.toolbar-right .button {
+  padding: 7px 9px;
+}
+.topbar .breadcrumb {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.settings-empty {
+  font-size: 11px;
+  color: #91a397;
+}
+@media (max-width: 1100px) {
+  .sidebar {
+    width: 185px;
+  }
+  .welcome-panel {
+    padding: 20px;
+  }
+  .welcome-steps {
+    gap: 9px;
+  }
+  .table-toolbar {
+    padding: 12px;
+    gap: 8px;
+  }
+  .toolbar-right {
+    gap: 6px;
+  }
+  .toolbar-right .filter-input {
+    width: 95px;
+  }
+  .breadcrumb > span {
+    display: none;
+  }
+}

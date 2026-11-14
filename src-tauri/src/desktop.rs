@@ -82,7 +82,45 @@ async fn dispatch(
                 scheduler.scan();
                 Ok(value)
             }
-            other => engine.dispatch(other),
+            other => {
+                let workspace = match &other {
+                    Request::RenameSpace { workspace_id, .. }
+                    | Request::SavePage { workspace_id, .. }
+                    | Request::CreateView { workspace_id, .. }
+                    | Request::UpdateWorksheet { workspace_id, .. } => Some(workspace_id.clone()),
+                    Request::AddExcelWorkbook { space_id, .. } => space_id.clone(),
+                    _ => None,
+                };
+                let changed = matches!(
+                    &other,
+                    Request::CreateSpace { .. }
+                        | Request::RenameSpace { .. }
+                        | Request::AddExcelWorkbook { .. }
+                        | Request::SavePage { .. }
+                        | Request::CreateView { .. }
+                        | Request::UpdateWorksheet { .. }
+                );
+                let import = matches!(
+                    &other,
+                    Request::AddExcelWorkbook { .. } | Request::UpdateWorksheet { .. }
+                );
+                let value = engine.dispatch(other)?;
+                if changed {
+                    let workspace = workspace
+                        .or_else(|| value.get("id").and_then(|v| v.as_str()).map(str::to_string));
+                    scheduler.scan();
+                    if import {
+                        if let Some(id) = &workspace {
+                            scheduler.enqueue(Some(id), None)?;
+                        }
+                    }
+                    let _ = app.emit(
+                        "workspace.configChanged",
+                        serde_json::json!({"workspace_id":workspace}),
+                    );
+                }
+                Ok(value)
+            }
         }
     })
     .await
@@ -101,6 +139,21 @@ async fn pick_workspace_config(app: tauri::AppHandle) -> Result<Option<String>, 
     .await
     .map_err(|e| e.to_string())
 }
+#[tauri::command]
+async fn pick_excel_files(app: tauri::AppHandle) -> Result<Vec<String>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        app.dialog()
+            .file()
+            .add_filter("Excel workbooks", &["xlsx", "xls", "xlsm", "xlsb", "ods"])
+            .blocking_pick_files()
+            .unwrap_or_default()
+            .into_iter()
+            .map(|p| p.to_string())
+            .collect()
+    })
+    .await
+    .map_err(|e| e.to_string())
+}
 fn show(app: &tauri::AppHandle) {
     if let Some(w) = app.get_webview_window("main") {
         let _ = w.show();
@@ -108,50 +161,13 @@ fn show(app: &tauri::AppHandle) {
         let _ = w.set_focus();
     }
 }
-fn copy_tree(source: &Path, target: &Path) -> std::io::Result<()> {
-    std::fs::create_dir_all(target)?;
-    for item in std::fs::read_dir(source)? {
-        let item = item?;
-        let dest = target.join(item.file_name());
-        if item.file_type()?.is_dir() {
-            copy_tree(&item.path(), &dest)?;
-        } else {
-            std::fs::copy(item.path(), dest)?;
-        }
-    }
-    Ok(())
-}
-fn install_demo(app: &tauri::AppHandle, engine: &Engine, data: &Path) -> anyhow::Result<()> {
-    if !engine.list_workspaces()?.is_empty() {
-        return Ok(());
-    }
-    let project = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
-    let resource = app.path().resource_dir()?;
-    let source = if cfg!(debug_assertions) && project.join("fixtures/demo").exists() {
-        project.to_path_buf()
-    } else {
-        resource
-    };
-    let demo = data.join("demo-workspace");
-    // Per-user writable demo copy. Never overwrite an existing user/demo workspace.
-    if !demo.join("workspaces/demo-workspace.yaml").exists() {
-        copy_tree(&source.join("workspaces"), &demo.join("workspaces"))?;
-        copy_tree(&source.join("fixtures/demo"), &demo.join("fixtures/demo"))?;
-    }
-    engine.add_config(&demo.join("workspaces/demo-workspace.yaml"))?;
-    engine.add_config(&demo.join("workspaces/alternate-workspace.yaml"))?;
-    let mut settings = engine.settings()?;
-    settings.selected_workspace = Some("demo".into());
-    engine.update_settings(settings)?;
-    Ok(())
-}
 pub fn run() {
     let app=tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app,args,_cwd|{if lifecycle::launch_action(&args,true)==LaunchAction::Show{show(app);}}))
         .plugin(tauri_plugin_autostart::Builder::new().args(["--background"]).build())
         .plugin(tauri_plugin_dialog::init()).plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_window_state::Builder::default().with_state_flags(tauri_plugin_window_state::StateFlags::all()-tauri_plugin_window_state::StateFlags::VISIBLE).build())
-        .invoke_handler(tauri::generate_handler![dispatch,pick_workspace_config])
+        .invoke_handler(tauri::generate_handler![dispatch,pick_workspace_config,pick_excel_files])
         .setup(|app|{
             // BaseDirs resolves LOCALAPPDATA on Windows. Cache is never placed in a configured share.
             let data=directories::BaseDirs::new().ok_or("Cannot resolve per-user local data directory")?.data_local_dir().join("ExcelDataExplorer");std::fs::create_dir_all(&data)?;
@@ -159,7 +175,7 @@ pub fn run() {
             let logs=data.join("logs");std::fs::create_dir_all(&logs)?;
             let log=tracing_appender::rolling::daily(&logs,"explorer.log");let (writer,guard)=tracing_appender::non_blocking(log);
             let _=tracing_subscriber::fmt().with_ansi(false).with_writer(writer).with_max_level(tracing::Level::INFO).try_init();
-            let engine=Engine::open(data.join("cache.sqlite"))?;install_demo(app.handle(),&engine,&data)?;
+            let engine=Engine::open(data.join("cache.sqlite"))?;
             let settings=engine.settings()?;
             let registration=if settings.autostart{app.autolaunch().enable()}else{app.autolaunch().disable()};
             if registration.is_ok(){engine.save_ui_state("lifecycle-error",&serde_json::json!({}))?;}

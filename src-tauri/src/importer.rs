@@ -68,7 +68,7 @@ impl Engine {
             .map_err(|_| anyhow::anyhow!("Writer unavailable"))?;
         // A config edited while parsing cannot publish an obsolete generation.
         ensure!(
-            self.config(&config.workspace.id)?.hash() == config.hash(),
+            self.config(&config.workspace.id)?.import_hash() == config.import_hash(),
             "Configuration changed during import; retry required"
         );
         self.stage_status(config, sources, "activating")?;
@@ -105,7 +105,7 @@ impl Engine {
         tx.execute("INSERT INTO record_documents SELECT * FROM stage.links", [])?;
         crate::indexing::rebuild_relationships(&tx, config, Some(run))?;
         for s in sources {
-            tx.execute("UPDATE source_state SET status='ready',last_error=NULL,last_success_at=CURRENT_TIMESTAMP,active_generation=?,last_seen_size=?,last_seen_mtime=?,last_seen_hash=? WHERE source_definition_id=?",params![run,fingerprint.size,fingerprint.mtime,config.hash(),db::qualified(&config.workspace.id,&s.id)])?;
+            tx.execute("UPDATE source_state SET status='ready',last_error=NULL,last_success_at=CURRENT_TIMESTAMP,active_generation=?,last_seen_size=?,last_seen_mtime=?,last_seen_hash=? WHERE source_definition_id=?",params![run,fingerprint.size,fingerprint.mtime,config.import_hash(),db::qualified(&config.workspace.id,&s.id)])?;
         }
         ensure!(
             !self.cancelled.load(Ordering::Relaxed),

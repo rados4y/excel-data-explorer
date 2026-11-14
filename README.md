@@ -1,5 +1,5 @@
 # Excel Data Explorer
-A working local-first Windows desktop application for exploring mapped Excel workbooks as indexed records, relationships and document links. Built with Tauri 2, Rust, SQLite/FTS5, React and TypeScript. No Excel installation, Python backend, application server or cloud service is required. Workbooks are read-only ingestion sources; browsing always uses the persistent SQLite cache.
+A local-first Windows desktop application for organizing Excel workbooks into spaces, worksheet pages and saved views. Start with an Excel file—no configuration file is required. Existing YAML mappings, relationships and document links remain supported. Built with Tauri 2, Rust, SQLite/FTS5, React and TypeScript. No Excel installation, Python backend, application server or cloud service is required. Workbooks are read-only ingestion sources; browsing always uses the persistent SQLite cache.
 
 ![Explorer with invoice document drill-down](docs/explorer-screenshot.png)
 
@@ -8,36 +8,44 @@ Prerequisites: Node 22/24 LTS, current Rust stable (1.100 or newer), Python 3 fo
 
 ```sh
 npm ci
-npm run demo
 npm run desktop
+# Optional: generate synthetic workbooks for trying the app:
+npm run demo
 ```
 
-The desktop opens the included **Project Offers 2026** workspace on first run and imports its generated workbooks in background. An alternate workspace demonstrates different sheet/column names and leading-zero keys. `npm run demo` deterministically regenerates the repository fixtures using Python's standard library; generated XLSX files and valid sample PDFs are already included. The installed app copies its demo to the per-user data folder and does not overwrite existing demo files.
+The app opens to an empty home screen on a fresh installation. Existing spaces/caches are restored on subsequent launches. Click **Add Excel workbook** and select one or more files: by default, each workbook creates its own space, and every worksheet becomes a separate page. Or create a named empty space first and select it as the import target. No YAML file is needed.
 
-Double-click an offer (or select it with arrow keys and press Enter). OFF-001 has invoices INV-1001 / INV-1045 and protocol PR-022. Double-click related records to drill down; Documents includes their PDF links. Missing PDFs remain visible with status. Search uses literal prefix tokens; filter inputs match exact configured values (e.g. Active). Columns resize and sort. Tables page 100 records and virtualize visible rows. Escape/back navigates out of details.
+Use **Worksheet settings** to set the header row, choose a unique ID, map columns, edit labels/types and request synchronization. **New view** creates another view over a worksheet with its own column selection, sort and saved filters. **Columns** changes the current page's visible columns; **Manage pages and views** hides/shows worksheet pages and renames spaces. These display choices persist and continue to work from cached data while Excel is offline.
 
-Add a YAML file through **Add workspace**, select it from the workspace picker and Sync now. Mappings, entities, namespaces, main columns, filters and relation tabs come from configuration. See [the complete configuration contract](docs/CONFIGURATION.md) and [demo YAML](workspaces/demo-workspace.yaml).
+![Fresh startup without a configuration file](docs/spaces-welcome.png)
+
+The [spaces and pages guide](docs/SPACES_AND_PAGES.md) explains the complete workflow with screenshots of the worksheet and view editors. Initial values stay as text and use an explicit row-number key until you choose a unique key/type mapping; row-number identity follows worksheet positions. Visibility is a personal display preference, not an access-permission system.
+
+Double-click any row (or select it with arrow keys and press Enter) to inspect its visible fields. Source provenance remains available. A space can contain several workbooks, and a saved view reuses cached rows rather than copying source data. Search uses literal prefix tokens; filters match exact configured values. Columns resize/sort, and the table pages 100 records with virtualization.
+
+**Import YAML** is an optional advanced path for the existing relational/document examples. Import [demo/01-offers-and-finance/workspace.yaml](demo/01-offers-and-finance/workspace.yaml) to open OFF-001 with invoices INV-1001 / INV-1045, protocol PR-022 and PDF links. Raw Excel onboarding creates generic worksheet pages; it does not guess business relationships or allowed document roots. See [configuration reference](docs/CONFIGURATION.md).
 
 ## How it works
 
-A YAML configuration tells Explorer which workbook sheets to read, how Excel headers map to typed fields, which string fields identify records, and how records relate. The background worker waits for a stable file, copies a read-only snapshot and parses the configured worksheets. It validates the rows and builds a new indexed generation in local SQLite. A whole workbook activates together; a malformed key, duplicate ID, unavailable file or failed transaction leaves the previous valid cache in place.
+Adding Excel inspects a stable snapshot, creates a persisted space/page configuration in the app and queues import. Worksheet settings define how source columns become typed fields and identities. An optional YAML profile can define the same mappings plus business relationships/documents. The worker validates rows and builds an indexed generation in local SQLite. A physical workbook activates atomically; bad keys, unavailable files or failed transactions preserve its previous valid cache.
 
 ```mermaid
 flowchart LR
-    Y[Workspace YAML] --> I[Background import]
-    E[Excel workbooks] --> S[Stable read-only snapshot] --> I
-    I --> V[Normalize and validate]
-    V --> C[(SQLite cache and indexes)]
-    C --> U[Search, filter and drill down]
-    U --> D[Validate a cached document reference]
-    D --> O[Open in the default desktop application]
+    E[Add Excel workbooks] --> P[Preview worksheets]
+    P --> S[Spaces and worksheet pages]
+    S --> I[Background import and validation]
+    Y[Optional advanced YAML] --> I
+    I --> C[(SQLite cache and indexes)]
+    C --> U[Search and browse pages]
+    U --> V[Saved views and column visibility]
+    U --> D[Configured relationships and document links]
 ```
 
 Search, filters, tables and related-record tabs query SQLite; they do not reread Excel. That is why the last valid data remains browsable while a workbook is disconnected or importing. Documents stay in their folders: the cache stores references and availability, and opening rechecks the allowed root/extension. Sources can have different successful import times, shown in Sync center. There is no Excel writeback or formula/macro execution.
 
 ## Sample gallery
 
-The [demo folder](demo/README.md) contains **five self-contained examples**, **11 XLSX files**, **5 YAML profiles**, **8 synthetic PDFs**, expected-result manifests, and a screenshot for each example. Files are already generated; no private data is needed. Copy an entire example folder if desired, then use **Add workspace → its `workspace.yaml` → select workspace → Sync now**. All input/document paths are relative to that YAML file.
+The [demo folder](demo/README.md) contains **five self-contained examples**, **11 XLSX files**, **5 YAML profiles**, **8 synthetic PDFs**, expected-result manifests, and a screenshot for each example. Files are already generated; no private data is needed. Copy an entire example folder if desired. Use **Add Excel** to browse its raw workbooks as worksheet pages, or **Import YAML → its `workspace.yaml` → select space → Sync now** for the configured relational walkthrough. All input/document paths are relative to that YAML file.
 
 | Sample | Configuration | Workbooks | What to try |
 |---|---|---|---|
@@ -84,10 +92,10 @@ npm run demo:samples       # Regenerate just the five curated examples
 npm run demo               # Regenerate both original fixtures and the new gallery
 npm run core:build
 npx playwright install chromium
-npm run demo:images        # Capture all five preview.png images using the real backend
+npm run demo:images        # Capture gallery previews and the space/page editor screenshots
 ```
 
-Regeneration resets synthetic source files and the recovery exercise; authored YAML/configuration guides are left intact. The five images are actual React UI screenshots backed by Rust/SQLite through a test-only IPC bridge; Windows native chrome/events are stubbed for capture. The [demo guide](demo/README.md) explains every file, expected result and regeneration command. The original larger 120-offer fixture in `fixtures/demo/` remains available as the first-run application demo.
+Regeneration resets synthetic source files and the recovery exercise; authored YAML/configuration guides are left intact. The five images are actual React UI screenshots backed by Rust/SQLite through a test-only IPC bridge; Windows native chrome/events are stubbed for capture. The [demo guide](demo/README.md) explains every file, expected result and regeneration command. The larger 120-offer fixture in `fixtures/demo/` remains available for optional manual import; a fresh app no longer installs a demo space automatically.
 
 ## Desktop defaults
 - **Windows sign-in:** autostart enabled, `--background` invocation stays hidden and synchronizes in background.
@@ -95,7 +103,7 @@ Regeneration resets synthetic source files and the recovery exercise; authored Y
 - **Manual/second launch:** shows/restores the same single instance.
 - **Interactive data:** reads local SQLite, including when workbooks are disconnected. Failed imports preserve the previous valid workbook generation and disclose stale status.
 
-Autostart and close-to-tray are configurable in Settings. The tray also offers Sync now, Pause / Resume sync, Settings and Sync status. Sync now explicitly overrides pause for that job without changing the pause preference. Workspace, selected record/detail visibility, search/filter/sort/page/column widths and window geometry persist. Each workbook has an independent successful import time; the UI never implies a global cross-file transaction.
+Autostart and close-to-tray are configurable in Settings. The tray also offers Sync now, Pause / Resume sync, Settings and Sync status. Sync now explicitly overrides pause for that job without changing the pause preference. Spaces, active page, saved views, worksheet/page visibility, visible columns, selected record/detail state, search/filter/sort/page/column widths and window geometry persist. Each workbook has an independent successful import time; the UI never implies a global cross-file transaction.
 
 ## Tests and diagnostics
 ```sh
@@ -120,7 +128,7 @@ node scripts/run.mjs cargo run --manifest-path src-tauri/Cargo.toml --no-default
 
 The `rpc` diagnostic mode accepts newline-delimited typed JSON on stdin, e.g. `{"command":"query_records","workspace_id":"demo","entity_type":"offer","options":{"search":"OFF-001","limit":100}}`. It uses the same engine, not an HTTP server. A plain `npm run dev` browser tab has no native cache connection; use the desktop command for the full app. The Playwright test bridge exists only in tests.
 
-[Verification report](docs/TEST_REPORT.md): 34 Rust, 2 Python demo-helper tests, 3 frontend and 9 real-core browser tests pass on Linux; Windows-target native API/type checking passed. Windows GUI/installer/sign-in acceptance still requires execution on Windows. [Measured performance](docs/PERFORMANCE.md): 70,001-record release benchmark with real latency, import throughput and memory results; full target-scale and Windows metrics remain unmeasured.
+[Verification report](docs/TEST_REPORT.md): 43 Rust, 2 Python demo-helper tests, 6 frontend and 13 real-core browser tests pass on Linux; Windows-target native API/type checking passed. Windows GUI/installer/sign-in acceptance still requires execution on Windows. [Measured performance](docs/PERFORMANCE.md): 70,001-record release benchmark with real latency, import throughput and memory results; full target-scale and Windows metrics remain unmeasured.
 
 ```sh
 python benchmarks/run.py --offers 10000 --output /local/ssd/ede-benchmark
@@ -152,9 +160,11 @@ Formal implementation order was M0 → M1 → M2 → M3 → M4 → M5 → M6, wi
 | M6 — hardening/release | Benchmarks, failure/plan regression tests, diagnostics, Windows installer configuration, CI and release/operations docs | Full 700k benchmark, Windows GUI/installer/signing, CPU/FPS/launch targets |
 
 ## Troubleshooting and limits
+The [space/page guide](docs/SPACES_AND_PAGES.md) covers adding workbooks and configuring worksheets without YAML. Space profiles and presentation settings live in the local database; back it up to preserve them. Display hiding does not remove data or grant/revoke access.
+
 Sync center shows per-source paths, sheets, checked/imported times, row counts and diagnostics; click a recent import to see row/field errors. Offline/locked/malformed sources keep their committed records. Correct the source/config and Sync now. Configuration errors keep the persisted last-good profile. Use Settings → Open logs folder for sanitized stage/timing logs.
 
-The database lives at `%LOCALAPPDATA%/ExcelDataExplorer/cache.sqlite`, with logs and the writable demo nearby. Never place the cache on a network share. The diagnostic CLI lets you choose a local cache path explicitly. Keep the cache if you need offline browsing; it is not a substitute for source backups. The application does not encrypt SQLite; Windows device encryption/BitLocker is appropriate for confidential data.
+The database lives at `%LOCALAPPDATA%/ExcelDataExplorer/cache.sqlite`, with logs nearby. Example workbooks are optional inputs from this repository. Never place the cache on a network share. The diagnostic CLI lets you choose a local cache path explicitly. Keep the cache if you need offline browsing; it is not a substitute for source backups. The application does not encrypt SQLite; Windows device encryption/BitLocker is appropriate for confidential data.
 
 Calamine materializes worksheet ranges, so extreme workbooks still need a RAM benchmark. Large activation/relationship rebuilds may be long transactions; WAL protects readers. A blocked SMB OS call can delay cancellation/Exit. Metadata checks can miss content rewritten with identical size and timestamp; manual Sync now forces reimport. New source directories are covered by periodic checks even if they were added after watcher initialization. Document listings cap at 1,000 links with an explicit label; availability checks run in bounded background batches. Decimal numeric projections approximate sorting while canonical text preserves values. Sorting is one column at a time. No editing/writeback, formula calculation, macro execution, OCR or document-content search is implemented.
 

@@ -6,10 +6,14 @@ const cli = join(
   dirname(require.resolve("@playwright/test/package.json")),
   "cli.js",
 );
-const child = spawn(process.execPath, [cli, "test", "gallery.spec.ts"], {
-  stdio: "inherit",
-  env: { ...process.env, EDE_CAPTURE_DEMO_IMAGES: "1" },
-});
+const child = spawn(
+  process.execPath,
+  [cli, "test", "gallery.spec.ts", "spaces.spec.ts"],
+  {
+    stdio: "inherit",
+    env: { ...process.env, EDE_CAPTURE_DEMO_IMAGES: "1" },
+  },
+);
 child.on("error", (error) => {
   console.error(error.message);
   process.exit(1);

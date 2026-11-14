@@ -19,6 +19,10 @@ pub struct Config {
     #[serde(default)]
     pub documents: Vec<DocumentMapping>,
     pub views: Views,
+    #[serde(default)]
+    pub managed: bool,
+    #[serde(default)]
+    pub pages: Vec<PageDefinition>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -63,6 +67,8 @@ pub struct Source {
     #[serde(default = "one")]
     pub header_row: u32,
     pub key: String,
+    #[serde(default)]
+    pub key_mode: KeyMode,
     pub fields: BTreeMap<String, Field>,
 }
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
@@ -79,6 +85,8 @@ pub enum FieldType {
 #[serde(deny_unknown_fields)]
 pub struct Field {
     pub column: String,
+    #[serde(default)]
+    pub column_index: Option<u32>,
     #[serde(rename = "type")]
     pub kind: FieldType,
     #[serde(default)]
@@ -91,6 +99,41 @@ pub struct Field {
     pub filterable: bool,
     #[serde(default)]
     pub label: Option<String>,
+}
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum KeyMode {
+    #[default]
+    Field,
+    RowNumber,
+}
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum PageKind {
+    #[default]
+    Worksheet,
+    View,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PageDefinition {
+    pub id: String,
+    pub title: String,
+    pub entity: String,
+    #[serde(default)]
+    pub source_id: Option<String>,
+    #[serde(default)]
+    pub kind: PageKind,
+    pub columns: Vec<String>,
+    pub default_sort: Sort,
+    #[serde(default)]
+    pub search_fields: Vec<String>,
+    #[serde(default)]
+    pub filters: Vec<String>,
+    #[serde(default)]
+    pub fixed_filters: BTreeMap<String, serde_json::Value>,
+    #[serde(default)]
+    pub hidden: bool,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -239,7 +282,7 @@ impl Config {
             self.version
         );
         ensure!(valid_id(&self.workspace.id), "Invalid workspace ID");
-        ensure!(!self.sources.is_empty(), "Workspace needs sources");
+
         ensure!(self.settings.read_only, "Only read_only: true is supported");
         ensure!(
             self.settings.local_scan_seconds >= 5 && self.settings.network_scan_seconds >= 5,
@@ -266,6 +309,17 @@ impl Config {
             self.documents.iter().map(|s| s.id.as_str()),
             "document mapping",
         )?;
+        ensure!(
+            !self.workspace.name.trim().is_empty() && self.workspace.name.len() <= 200,
+            "Space name must be 1–200 characters"
+        );
+        if self.sources.is_empty() {
+            ensure!(
+                self.managed && self.pages.is_empty(),
+                "Workspace needs sources"
+            );
+            return Ok(());
+        }
         for s in &self.sources {
             ensure!(
                 valid_id(&s.entity) && valid_id(&s.namespace),
@@ -289,6 +343,12 @@ impl Config {
                 "Source {} key must be a required string",
                 s.id
             );
+            if s.key_mode == KeyMode::RowNumber {
+                ensure!(
+                    s.key == "__row_id",
+                    "Generated row identity must use __row_id"
+                );
+            }
             unique(s.fields.keys().map(String::as_str), "field")?;
             for f in s.fields.values() {
                 ensure!(
@@ -296,7 +356,17 @@ impl Config {
                     "Source {} has empty column mapping",
                     s.id
                 );
+                if let Some(index) = f.column_index {
+                    ensure!(
+                        (1..=16384).contains(&index),
+                        "Column index must be 1..16384"
+                    );
+                }
             }
+        }
+        unique(self.pages.iter().map(|p| p.id.as_str()), "page")?;
+        for page in &self.pages {
+            self.validate_page(page)?;
         }
         for r in &self.relationships {
             self.field(&r.parent_entity, &r.parent_field)?;
@@ -362,6 +432,159 @@ impl Config {
             }
         }
         Ok(())
+    }
+    pub fn effective_pages(&self) -> Vec<PageDefinition> {
+        if !self.pages.is_empty() {
+            return self.pages.clone();
+        }
+        if self.sources.is_empty() {
+            return Vec::new();
+        }
+        let v = &self.views.main;
+        vec![PageDefinition {
+            id: "main".into(),
+            title: v.title.clone(),
+            entity: v.entity.clone(),
+            source_id: None,
+            kind: PageKind::Worksheet,
+            columns: v.columns.clone(),
+            default_sort: v.default_sort.clone(),
+            search_fields: v.search_fields.clone(),
+            filters: v.filters.clone(),
+            fixed_filters: BTreeMap::new(),
+            hidden: false,
+        }]
+    }
+    pub fn validate_page(&self, page: &PageDefinition) -> Result<()> {
+        ensure!(
+            valid_id(&page.id) && !page.title.trim().is_empty() && page.title.len() <= 200,
+            "Invalid page name or ID"
+        );
+        ensure!(
+            !page.columns.is_empty(),
+            "Keep at least one visible column on a page"
+        );
+        unique(page.columns.iter().map(String::as_str), "page column")?;
+        if let Some(source) = &page.source_id {
+            let s = self
+                .sources
+                .iter()
+                .find(|s| &s.id == source)
+                .context("Page references an unknown worksheet")?;
+            ensure!(s.entity == page.entity, "Page worksheet/entity mismatch");
+        }
+        for field in page
+            .columns
+            .iter()
+            .chain(&page.search_fields)
+            .chain(&page.filters)
+            .chain(page.fixed_filters.keys())
+            .chain(std::iter::once(&page.default_sort.field))
+        {
+            self.field(&page.entity, field)?;
+        }
+        ensure!(
+            page.columns.contains(&page.default_sort.field),
+            "Sort column must be visible"
+        );
+        ensure!(
+            page.search_fields.iter().all(|f| page.columns.contains(f)),
+            "Search fields must be visible"
+        );
+        ensure!(
+            page.filters.iter().all(|f| page.columns.contains(f)),
+            "Filter controls must use visible columns"
+        );
+        for (field, value) in &page.fixed_filters {
+            ensure!(
+                !value.is_null() && !value.is_array() && !value.is_object(),
+                "View filters need a text, number or boolean value"
+            );
+            ensure!(
+                page.columns.contains(field),
+                "Saved filter column must be visible"
+            );
+        }
+        Ok(())
+    }
+    pub fn for_page(&self, id: &str) -> Result<Self> {
+        let page = self
+            .effective_pages()
+            .into_iter()
+            .find(|p| p.id == id)
+            .context("Page not found")?;
+        ensure!(
+            !page.hidden,
+            "This page is hidden; show it in Pages and views first"
+        );
+        let mut config = self.clone();
+        config.views.main = MainView {
+            entity: page.entity.clone(),
+            title: page.title,
+            columns: page.columns.clone(),
+            default_sort: page.default_sort,
+            search_fields: page.search_fields,
+            filters: page.filters,
+        };
+        if self.views.detail.entity != page.entity || id != "main" {
+            let mut tabs = vec![Tab {
+                title: "Overview".into(),
+                kind: TabType::Fields,
+                relationship: None,
+            }];
+            for r in self
+                .relationships
+                .iter()
+                .filter(|r| r.parent_entity == page.entity)
+            {
+                tabs.push(Tab {
+                    title: r.child_entity.clone(),
+                    kind: TabType::Relationship,
+                    relationship: Some(r.id.clone()),
+                });
+            }
+            tabs.push(Tab {
+                title: "Documents".into(),
+                kind: TabType::RelatedDocuments,
+                relationship: None,
+            });
+            let source = self
+                .sources
+                .iter()
+                .find(|s| s.entity == page.entity)
+                .context("Page entity not found")?;
+            config.views.detail = DetailView {
+                entity: page.entity,
+                title_field: if page.columns.contains(&source.key) {
+                    source.key.clone()
+                } else {
+                    page.columns[0].clone()
+                },
+                tabs,
+            };
+        }
+        if !page.columns.contains(&config.views.detail.title_field) {
+            config.views.detail.title_field = page.columns[0].clone();
+        }
+        Ok(config)
+    }
+    /// UI-only page/column changes do not invalidate successfully imported source data.
+    pub fn import_hash(&self) -> String {
+        let mut sources = serde_json::to_value(&self.sources).expect("serializable sources");
+        for source in sources.as_array_mut().into_iter().flatten() {
+            if let Some(fields) = source
+                .get_mut("fields")
+                .and_then(serde_json::Value::as_object_mut)
+            {
+                for field in fields.values_mut() {
+                    if let Some(f) = field.as_object_mut() {
+                        f.remove("label");
+                        f.remove("filterable");
+                    }
+                }
+            }
+        }
+        crate::hash(&serde_json::json!({"sources":sources,"relationships":self.relationships,"documents":self.documents,"roots":self.roots,"timezone":self.settings.timezone,"legacy_search":self.views.main.search_fields}).to_string())
     }
     pub fn field(&self, entity: &str, field: &str) -> Result<&Field> {
         let mut found = None;

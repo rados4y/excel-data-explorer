@@ -1,9 +1,11 @@
 # Demo workspaces
 Five ready-to-open examples with **11 Excel workbooks, 5 YAML configurations, 8 sample PDFs, 5 screenshots, and expected-result manifests**. All data is synthetic. Workbook variants for the synchronization example are included in the count.
 
+You can also choose **Add Excel** and select any included workbook without importing YAML. That creates generic worksheet pages automatically. For the relationship/document mappings and screenshots below, use the optional YAML profile. See the [space/page guide](../docs/SPACES_AND_PAGES.md).
+
 ## Start with an example
 1. Install/run the desktop application as described in the [main README](../README.md#install-and-run).
-2. Choose **Add workspace**, then select an example's `workspace.yaml`.
+2. Choose **Import YAML**, then select an example's `workspace.yaml`.
 3. Select that workspace and click **Sync now**. An example with multiple worksheets may need a few seconds for stable-file checks.
 4. Double-click a table row to inspect its fields, related records and documents. Use Back or Escape to navigate.
 

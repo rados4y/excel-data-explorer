@@ -14,6 +14,7 @@ import { api, formatTime } from "./api";
 import type { ImportError, ImportRun, Settings, SyncStatus } from "./types";
 export function SyncCenter(p: {
   mode: "sync" | "settings";
+  managed?: boolean;
   status: SyncStatus | null;
   workspaceId: string;
   settings: Settings;
@@ -123,33 +124,36 @@ export function SyncCenter(p: {
                   onChange={(e) => setting("close_to_tray", e.target.checked)}
                 />
               </label>
-              <h3>Workspace configuration</h3>
+              <h3>Advanced configuration</h3>
               <p className="muted">
-                Add a YAML workspace, or reload a configuration after changing
-                its field mappings.
+                Excel spaces are configured through Pages and views. You can
+                also import an existing YAML workspace for advanced
+                relationships and document mappings.
               </p>
               <button className="button" onClick={p.onAdd}>
                 <FolderOpen size={16} /> Add workspace configuration
               </button>
-              <button
-                className="button"
-                onClick={async () => {
-                  try {
-                    const ws = await api("list_workspaces", {});
-                    const w = ws.find((w) => w.id === p.workspaceId);
-                    if (w) {
-                      await api("add_workspace_config", {
-                        config_file_path: w.config_path,
-                      });
-                      p.onSync();
+              {!p.managed && p.workspaceId && (
+                <button
+                  className="button"
+                  onClick={async () => {
+                    try {
+                      const ws = await api("list_workspaces", {});
+                      const w = ws.find((w) => w.id === p.workspaceId);
+                      if (w && !w.config_path.startsWith("app://")) {
+                        await api("add_workspace_config", {
+                          config_file_path: w.config_path,
+                        });
+                        p.onSync();
+                      }
+                    } catch (e) {
+                      p.onError(String(e));
                     }
-                  } catch (e) {
-                    p.onError(String(e));
-                  }
-                }}
-              >
-                <RefreshCw size={16} /> Reload current configuration
-              </button>
+                  }}
+                >
+                  <RefreshCw size={16} /> Reload imported YAML
+                </button>
+              )}
               <h3>Diagnostics</h3>
               <button
                 className="button"
